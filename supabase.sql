@@ -13,12 +13,18 @@ create table if not exists public.scores (
   updated_at timestamptz not null default now()
 );
 alter table public.scores enable row level security;   -- 정책 없음: 테이블에 직접 읽기/쓰기 불가
+revoke all on public.scores from anon, authenticated;
 
--- 공개 랭킹 보기용 (키 해시 일부만 노출)
-create or replace view public.leaderboard as
-  select left(key_hash, 16) as pid, nick, char_id, best, best_rank, day, day_best, day_fin, runs, updated_at
-  from public.scores;
-grant select on public.leaderboard to anon, authenticated;
+-- 공개 랭킹 조회 (키 해시 일부만 노출)
+create or replace function public.get_leaderboard(p_kind text, p_day date)
+returns table (pid text, nick text, char_id int, best int, best_rank int, day date, day_best int, day_fin boolean)
+language sql stable security definer set search_path = public as $$
+  select left(s.key_hash, 16), s.nick, s.char_id, s.best, s.best_rank, s.day, s.day_best, s.day_fin
+  from public.scores s where (p_kind <> 'today' or s.day = p_day)
+  order by case when p_kind = 'today' then s.day_best else s.best end desc, s.updated_at asc limit 100;
+$$;
+revoke all on function public.get_leaderboard(text, date) from public;
+grant execute on function public.get_leaderboard(text, date) to anon, authenticated;
 
 -- 기록 제출: 점수 범위 검사, 최고 기록만 올라감
 create or replace function public.submit_score(p_key text, p_nick text, p_char int, p_score int, p_rank int, p_fin boolean, p_day date)

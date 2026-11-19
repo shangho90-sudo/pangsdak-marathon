@@ -806,7 +806,7 @@ let shake = 0;
 const CFG = window.PANGSDAK_CONFIG || {};
 const Rank = {
   ready: false, note: '', uid: null, key: null,
-  hdr(){ return { apikey: CFG.anonKey, Authorization: 'Bearer ' + CFG.anonKey, 'Content-Type': 'application/json' }; },
+  hdr(){ const h = { apikey: CFG.anonKey, 'Content-Type': 'application/json' }; if (CFG.anonKey.startsWith('eyJ')) h.Authorization = 'Bearer ' + CFG.anonKey; return h; },
   async init(){
     if (!CFG.url || !CFG.anonKey){ this.note = '랭킹 서버가 아직 설정되지 않았어요 (config.js).'; return; }
     // anonymous player key: random per device, never shown to anyone; the server stores only its hash
@@ -828,10 +828,8 @@ const Rank = {
   },
   async board(kind){
     if (!CFG.url || !CFG.anonKey) return null;
-    const base = CFG.url.replace(/\/$/, '') + '/rest/v1/leaderboard?select=pid,nick,char_id,best,best_rank,day,day_best,day_fin';
-    const q = kind === 'today' ? `&day=eq.${todayKey()}&order=day_best.desc&limit=100` : '&order=best.desc&limit=100';
     try { const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 10000);
-      const r = await fetch(base + q, { headers: this.hdr(), signal: ctl.signal }); clearTimeout(to); if (!r.ok) return null;
+      const r = await fetch(CFG.url.replace(/\/$/, '') + '/rest/v1/rpc/get_leaderboard', { method: 'POST', headers: this.hdr(), signal: ctl.signal, body: JSON.stringify({ p_kind: kind === 'today' ? 'today' : 'all', p_day: todayKey() }) }); clearTimeout(to); if (!r.ok) return null;
       return (await r.json()).map(x => ({ id: x.pid, nick: x.nick, char: x.char_id, best: x.best, bestRank: x.best_rank, dayBest: x.day_best, dayFin: x.day_fin }));
     } catch(e){ return null; }
   }
