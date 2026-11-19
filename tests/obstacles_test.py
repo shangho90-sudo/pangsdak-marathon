@@ -88,7 +88,7 @@ CONSISTENCY_JS = r"""(TYPE) => {
         const rr = C.RMID + (Math.random() - .5) * 6.4, da = (Math.random() - .5) * (TYPE === 'door' || TYPE === 'jumpbar' || TYPE === 'sweeper' ? 7 : 3.4) / C.RMID;
         const a = o.a + da; const tp = L.roadTop(a, rr); if (!tp || Math.abs(tp.top - baseY) > 1.2) continue;
         L.setPolar(P, a, rr, tp.top); P.vel.set(0, 0, 0); P.stun = 0; P.invul = 0; P.shield = 0; P.grounded = true;
-        const p0 = P.pos.clone(); L.obstacleHits(P, o); const hit = P.stun > 0 || P.pos.distanceTo(p0) > .005;
+        const p0 = P.pos.clone(); L.obstacleHits(P, o); const hit = P.stun > 0 || (TYPE !== 'windmill' && P.pos.distanceTo(p0) > .005);   // windmill: its frame post (tested in the solid check) also pushes
         // visual: distance from the runner's body (two capsule points like the game uses) to the nearest hazard part
         let d = 1e9, part = null; for (const hy of [.3, .85]) for (const m of parts){ const dd = boxDist(m, new THREE.Vector3(p0.x, p0.y + hy, p0.z)); if (dd < d){ d = dd; part = m.geometry.type + '@' + hy + ' dy' + (p0.y - baseY).toFixed(2) + ' dxz' + Math.hypot(p0.x - cx, p0.z - cz).toFixed(2); } }
         const visualHit = d < C.RAD * .6, visualNear = d < C.RAD + .35;
@@ -101,6 +101,24 @@ CONSISTENCY_JS = r"""(TYPE) => {
   L.ents.forEach(e => { if (e !== P) e.finished = false; });
   return { total, agree, deepMiss, farHit, bad };
 }"""
+
+PASS_THROUGH_JS = r"""(STATE)=>{ const L=__lab, W=L.world, P=L.player, C=L.consts, THREE=L.THREE; L.ents.forEach(e=>{ if(e!==P) e.finished=true; });
+  const inv=new THREE.Matrix4(), v=new THREE.Vector3();
+  const dist=(m,p)=>{ const g=m.geometry; if(!g.boundingBox) g.computeBoundingBox(); inv.copy(m.matrixWorld).invert(); v.copy(p).applyMatrix4(inv); const s=new THREE.Vector3().setFromMatrixScale(m.matrixWorld); const gp=g.parameters||{};
+    if(g.type==='SphereGeometry') return v.clone().multiply(s).length()-gp.radius*s.x;
+    if(g.type==='CylinderGeometry'){ const h=gp.height/2; const t=THREE.MathUtils.clamp((v.y+h)/(2*h),0,1); const rad=gp.radiusBottom+(gp.radiusTop-gp.radiusBottom)*t; const dr=Math.hypot(v.x*s.x,v.z*s.z)-rad*s.x, dy=(Math.abs(v.y)-h)*s.y; return Math.max(dr,dy); }
+    const bb=g.boundingBox; const dx=Math.max(bb.min.x-v.x,v.x-bb.max.x)*s.x, dy=Math.max(bb.min.y-v.y,v.y-bb.max.y)*s.y, dz=Math.max(bb.min.z-v.z,v.z-bb.max.z)*s.z; return Math.max(dx,dy,dz); };
+  const res={};
+  for(const o of W.obs){ if(o.type==='arch'&&false) continue; o.mesh.updateMatrixWorld(true); const parts=[]; o.mesh.traverse(m=>{ if(!m.isMesh||!m.geometry) return; const g=m.geometry.type; if(g==='CircleGeometry'||g==='PlaneGeometry'||g==='TubeGeometry'||g==='TorusGeometry'||g==='RingGeometry') return; const mt=Array.isArray(m.material)?m.material[0]:m.material; if(mt&&mt.transparent&&mt.opacity<.5&&!m.parent.userData.fade) return; if(!m.visible) return; parts.push(m); });
+    const cx=o.x??(o.piv?o.piv.x:Math.cos(o.a)*C.RMID), cz=o.z??(o.piv?o.piv.z:Math.sin(o.a)*C.RMID);
+    for(let k=0;k<160;k++){ const rr=C.R0+.35+Math.random()*(C.R1-C.R0-.7), a=o.a+(Math.random()-.5)*5/C.RMID; const tp=L.roadTop(a,rr); if(!tp||Math.abs(tp.top-(o.y??tp.top))>1.5) continue;
+      L.setPolar(P,a,rr,tp.top); P.vel.set(0,0,0); P.grounded=true; P.stun=STATE==='stun'?1:0; P.invul=STATE==='invul'?2:0; P.shield=STATE==='invul'?1:0;
+      let inside=null; for(const hy of [.3,.85]) for(const m of parts){ const d=dist(m,new THREE.Vector3(P.pos.x,P.pos.y+hy,P.pos.z)); if(d< -.08){ inside={g:m.geometry.type, d:+d.toFixed(2), hy}; break; } }
+      if(!inside) continue; const p0=P.pos.clone(); const st0=P.stun; L.obstacleHits(P,o); const blocked=L.blockedAt(p0.x,p0.z,P.a,P.r,p0.y);
+      const reacted = P.pos.distanceTo(p0)>.01 || P.stun>st0 || blocked;
+      const key=o.type+':'+inside.g; res[key]=res[key]||{inside:0,through:0,ex:null}; res[key].inside++; if(!reacted){ res[key].through++; if(!res[key].ex) res[key].ex={dr:+(rr-(o.r??C.RMID)).toFixed(2), da:+((a-o.a)*C.RMID).toFixed(2), d:inside.d, hy:inside.hy}; } } }
+  L.ents.forEach(e=>{ if(e!==P) e.finished=false; }); return res; }
+"""
 
 async def main():
     async with async_playwright() as p:
@@ -193,6 +211,14 @@ async def main():
             check(f'moving platform ({kind}): runner stands on it and is carried along', ride, json.dumps(res))
             check(f'moving platform ({kind}): jump and land back on it', s2['air'] and s2['on'], json.dumps(s2))
 
+        # ---------------- no passing through solid parts (also while stunned or shielded)
+        thr = {}
+        for stt in ['normal', 'stun', 'invul']:
+            r = await pg.evaluate(PASS_THROUGH_JS, stt)
+            for k, v in r.items():
+                if k.split(':')[0] in ('ice', 'conveyor', 'slime'): continue   # floor surfaces you are meant to stand in
+                if v['through']: thr[stt + ' ' + k] = v
+        check('solid: runners never pass through obstacle parts (normal / stunned / shielded)', not thr, json.dumps(thr)[:300])
         # ---------------- outer fence
         fence = await pg.evaluate("""(()=>{ const L=__lab, W=L.world, P=L.player, C=L.consts; const out=[]; L.ents.forEach(e=>{ if(e!==P) e.finished=true; });
           for(const s of W.segs.filter(q=>q.fence&&q.kind==='ramp').slice(2,7)){ const a=(s.a0+s.a1)/2; const tp=L.roadTop(a,C.R1-.5); if(!tp) continue;

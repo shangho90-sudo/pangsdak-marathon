@@ -452,8 +452,8 @@ function buildCourse(seed){
   const ramp = (len, opt = {}) => { const a0 = a, a1 = a + arc(len); const r0 = opt.r0 ?? R0, r1 = opt.r1 ?? R1;
     let y1 = opt.flat ? y : clamp(target(a1), y + .02 * len, y + .22 * len);
     // keep headroom under the next lap (tilts a 'flat' piece slightly if it must)
-    const nd = need(a0, a1); if (y1 < nd) y1 = Math.min(nd, y + .34 * len); const s = addSeg({ kind: 'ramp', a0, a1, r0, r1, y0: y, y1, rail: opt.r0 === undefined, base: a1 <= TAU + .01 }); a = a1; y = y1; return s; };
-  const stairs = n => { const depth = 2.9, rise = .62; if (y + rise * n < need(a, a + arc(depth * n))) ramp(4); const a0 = a, a1 = a + arc(depth * n); const s = addSeg({ kind: 'steps', a0, a1, r0: R0, r1: R1, y0: y, y1: y + rise * n, n, rise, rail: true, base: a1 <= TAU + .01 }); a = a1; y += rise * n; return s; };
+    const nd = need(a0, a1); if (y1 < nd) y1 = Math.min(nd, y + .34 * len); const s = addSeg({ kind: 'ramp', a0, a1, r0, r1, y0: y, y1, rail: opt.r0 === undefined, base: a1 <= TAU - .95 }); a = a1; y = y1; return s; };
+  const stairs = n => { const depth = 2.9, rise = .62; if (y + rise * n < need(a, a + arc(depth * n))) ramp(4); const a0 = a, a1 = a + arc(depth * n); const s = addSeg({ kind: 'steps', a0, a1, r0: R0, r1: R1, y0: y, y1: y + rise * n, n, rise, rail: true, base: a1 <= TAU - .95 }); a = a1; y += rise * n; return s; };
   const gap = len => { if (y < need(a, a + arc(len))) ramp(3); const s = addSeg({ kind: 'gap', a0: a, a1: a + arc(len), y0: y, y1: y }); a += arc(len); return s; };
   // obstacle factories (positions given as fraction along a segment)
   const at = (s, f) => lerp(s.a0, s.a1, f);
@@ -608,7 +608,7 @@ function nearObs(a, span = 2){ const out = []; const k0 = Math.floor(a / BIN); b
   for (let k = k0 - span; k <= k0 + span; k++){ const L = world.bins.get(k); if (!L) continue; for (const o of L){ if (o._stamp === binStamp) continue; o._stamp = binStamp; out.push(o); } } return out; }
 // shared hit helper for rotating arms (sweeper / jumpbar): point-vs-segment in the ground plane
 function armHit(o, e, dx, dz){ for (const sgn of [1, -1]){ const ux = Math.cos(o.ang) * sgn, uz = Math.sin(o.ang) * sgn; const p = dx * ux + dz * uz; if (p < 0 || p > o.len + RAD) continue;
-    if (Math.hypot(dx - ux * p, dz - uz * p, Math.max(0, p - o.len)) < RAD + .2) return { ux, uz, sgn }; } return null; }   // includes the bar's tip
+    const px = dx - ux * p, pz = dz - uz * p; if (Math.hypot(px, pz, Math.max(0, p - o.len)) < RAD + .2) return { ux, uz, sgn, px, pz }; } return null; }   // includes the bar's tip
 function segAt(a){ const S = world.segs; if (a < S[0].a0 || a >= S[S.length - 1].a1) return null; let lo = 0, hi = S.length - 1; while (lo < hi){ const m = (lo + hi + 1) >> 1; if (S[m].a0 <= a) lo = m; else hi = m - 1; } return S[lo]; }
 function roadTop(a, r){ const s = segAt(a); if (!s || s.kind === 'gap') return null; if (r < s.r0 - .02 || r > s.r1 + .02) return null;
   if (s.kind === 'ramp'){ const tp = lerp(s.y0, s.y1, (a - s.a0) / (s.a1 - s.a0)); return { top: tp, bot: s.base ? -.5 : tp - THICK, seg: s }; }
@@ -681,7 +681,8 @@ function makeWindmill(a, y, w){ const G = og(), g = new THREE.Group(); const H =
   for (let i = 0; i < 4; i++){ const arm = new THREE.Group(); arm.rotation.z = i * Math.PI / 2; const b = new THREE.Mesh(G.blade, i % 2 ? G.mOrange : G.mWhite); b.position.y = 1.55; b.castShadow = true; arm.add(b); rot.add(arm); }
   const stripe = new THREE.Mesh(G.plane, G.mWarn); stripe.scale.set(.9, (R1 - R0), 1); stripe.position.copy(P(a, (R0 + R1) / 2, y + .035)); stripe.rotation.set(-Math.PI / 2, 0, -a); g.add(stripe);
   faderGroup(g);
-  return { type: 'windmill', a, y, r: RMID, x: hubP.x, z: hubP.z, mesh: g, rot, w, ang: Math.random() * 6, H, len: 2.9, big: true }; }
+  const pq = P(a, R1 + .55, y);
+  return { type: 'windmill', posts: [{ x: pq.x, z: pq.z, rad: .4, y0: y, y1: y + H + .5 }], a, y, r: RMID, x: hubP.x, z: hubP.z, mesh: g, rot, w, ang: Math.random() * 6, H, len: 2.9, big: true }; }
 // 2. pendulum ball swinging across the road
 function makePendulum(a, y, ph){ const G = og(), g = new THREE.Group(); const L = 4.4, top = y + 6; const piv = P(a, RMID, top), n = nrmAt(a), t = tanAt(a);
   for (const rr of [R0 + .25, R1 + .3]){ const p = new THREE.Mesh(G.pole, G.mPurple); p.scale.set(1.2, 6.2, 1.2); p.position.copy(P(a, rr, y + 3.1)); g.add(p); }
@@ -689,7 +690,8 @@ function makePendulum(a, y, ph){ const G = og(), g = new THREE.Group(); const L 
   const sw = new THREE.Group(); sw.position.copy(piv); sw.lookAt(piv.clone().add(t)); const rope = new THREE.Mesh(G.rope, G.mWhite); rope.scale.y = L - 1; rope.position.y = -(L - 1) / 2; const ball = new THREE.Mesh(G.ball, G.mBall); ball.position.y = -L; ball.castShadow = true; sw.add(rope, ball); g.add(sw);
   const stripe = new THREE.Mesh(G.plane, G.mWarn); stripe.scale.set(1.6, R1 - R0, 1); stripe.position.copy(P(a, (R0 + R1) / 2, y + .035)); stripe.rotation.set(-Math.PI / 2, 0, -a); g.add(stripe);
   faderGroup(g);
-  return { type: 'pendulum', a, y, piv, n, t, sw, L, rad: 1, ph, spd: 1.5 + Math.random() * .4, amp: 1.0, th: 0, mesh: g, big: true }; }
+  const posts = [R0 + .25, R1 + .3].map(rr => { const q = P(a, rr, y); return { x: q.x, z: q.z, rad: .37, y0: y, y1: y + 6.2 }; });
+  return { type: 'pendulum', posts, a, y, piv, n, t, sw, L, rad: 1, ph, spd: 1.5 + Math.random() * .4, amp: 1.0, th: 0, mesh: g, big: true }; }
 // 3. low spinning bar across the whole road (jump over it)
 function makeJumpBar(a, y, w){ const G = og(), g = new THREE.Group(); const c = P(a, RMID, y); g.position.copy(c);
   const post = new THREE.Mesh(G.post, G.mNavy); post.scale.y = .32; post.position.y = .4; const cap = new THREE.Mesh(G.hub, G.mYellow); cap.position.y = .85;
@@ -761,7 +763,8 @@ function makeHammer(a, y, ph){ const M = mats(), g = new THREE.Group(); const n 
   const rod = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 4.2, 10), M.grey); rod.position.y = -2.1; const head = new THREE.Mesh(new THREE.CylinderGeometry(.85, .85, 1.9, 24), M.pink); head.rotation.x = Math.PI / 2; head.position.y = -4.3; head.castShadow = rod.castShadow = true;
   const cap1 = new THREE.Mesh(new THREE.CircleGeometry(.85, 24), M.grey); cap1.position.set(0, -4.3, .96); const cap2 = cap1.clone(); cap2.position.z = -.96; cap2.rotation.y = Math.PI;
   swing.add(rod, head, cap1, cap2); g.add(swing); faderGroup(g);
-  return { type: 'hammer', a, y, piv, n, t, ph, spd: 1.6 + Math.random() * .5, amp: 1.05, mesh: g, swing, th: 0, len: 4.3, big: true }; }
+  const posts = [R0 + .2, R1 + .3].map(rr => { const q = P(a, rr, y); return { x: q.x, z: q.z, rad: .36, y0: y, y1: y + H + .4 }; });
+  return { type: 'hammer', posts, a, y, piv, n, t, ph, spd: 1.6 + Math.random() * .5, amp: 1.05, mesh: g, swing, th: 0, len: 4.3, big: true }; }
 function makeWall(a, y, ph, spd){ const M = mats(); const g = new THREE.Group(); const m = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.7, 1.0), M.blue); m.castShadow = m.receiveShadow = true; m.position.y = .85; g.add(m);
   return { type: 'wall', a, y, ph, spd, mesh: g, rc: RMID, prevRc: RMID, half: 1.3, dep: .5 }; }
 function makeSlime(a, r, y){ const g = new THREE.Group(); const c = P(a, r, y); g.position.copy(c); const m = new THREE.Mesh(new THREE.CircleGeometry(1.5, 24), mats().slime); m.rotation.x = -Math.PI / 2; m.position.y = .03; m.scale.set(1, .75, 1); m.receiveShadow = true; g.add(m);
@@ -782,7 +785,7 @@ function makeArch(a, y, label, color, finish = false){ const g = new THREE.Group
   const lbl = textSprite(label, finish ? '#3a2600' : '#fff', finish ? 'rgba(255,210,63,.98)' : 'rgba(11,26,51,.92)', 2.2); lbl.position.copy(P(a, (R0 + R1) / 2, y + 5.1)); lbl.position.y += .05;
   g.add(p1, p2, top, lbl); p1.castShadow = p2.castShadow = true;
   if (finish){ const line = new THREE.Mesh(new THREE.PlaneGeometry(R1 - R0, 1), std(0xffffff, { map: canvasTex(64, 16, (gg) => { for (let i = 0; i < 16; i++) for (let j = 0; j < 4; j++){ gg.fillStyle = (i + j) % 2 ? '#111' : '#fff'; gg.fillRect(i * 4, j * 4, 4, 4); } }) })); line.position.copy(P(a, (R0 + R1) / 2, y + .04)); line.rotation.set(-Math.PI / 2, 0, -a); g.add(line); }
-  return { type: 'arch', a, y, mesh: g }; }
+  return { type: 'arch', a, y, mesh: g, posts: [{ x: p1.position.x, z: p1.position.z, rad: .4, y0: y, y1: y + 5 }, { x: p2.position.x, z: p2.position.z, rad: .4, y0: y, y1: y + 5 }] }; }
 function makeFloatPad(a, r, y, amp, ph){ const g = new THREE.Group(); const m = new THREE.Mesh(new THREE.CylinderGeometry(1.95, 1.4, .6, 28), std(0xffd23f)); m.position.y = -.3; m.castShadow = m.receiveShadow = true;
   const rim = new THREE.Mesh(new THREE.TorusGeometry(1.95, .08, 6, 28), std(0xffffff)); rim.rotation.x = Math.PI / 2; g.add(m, rim);
   const p = { a, r, y, rad: 1.9, amp, ph, mesh: g, x: 0, z: 0, dx: 0, dz: 0 }; padPos(p, 0); return p; }
@@ -1074,16 +1077,24 @@ function updateObstacles(dt, T){
     if (b.kind === 'ball'){ b.m.rotation.set(0, -b.a, 0); b.m.rotateX(-b.rot); } else { b.m.rotation.set(0, -b.a, Math.PI / 2); b.m.rotateY(b.rot); } }
 }
 const _tv = new THREE.Vector3();
+// keep a runner out of a solid part by moving them (dx,dz) and re-syncing their lap coordinates
+function shove(e, dx, dz){ e.pos.x += dx; e.pos.z += dz; e.a += wrap(Math.atan2(e.pos.z, e.pos.x) - e.a); e.r = Math.hypot(e.pos.x, e.pos.z); }
+const canHit = e => e.stun <= 0 && e.invul <= 0;   // stunned / invulnerable runners are not knocked again, but obstacles stay solid for them
 function obstacleHits(e, only){
   const cy = e.pos.y + HGT * .5;
   for (const o of only ? [only] : nearObs(e.a)){
+    if (o.posts) for (const q of o.posts){ if (e.pos.y + HGT < q.y0 || e.pos.y > q.y1) continue; const dx = e.pos.x - q.x, dz = e.pos.z - q.z, d = Math.hypot(dx, dz); const R = q.rad + RAD;
+      if (d < R){ const ux = d > 1e-4 ? dx / d : Math.cos(e.a), uz = d > 1e-4 ? dz / d : Math.sin(e.a); shove(e, ux * (R - d + .01), uz * (R - d + .01)); } }
     if (o.y !== undefined && !o.wide && o.type !== 'hammer' && o.type !== 'pendulum' && o.type !== 'windmill' && Math.abs(e.pos.y - o.y) > 3) continue;   // other floors
     if (o.type === 'sweeper'){
       const dx = e.pos.x - o.x, dz = e.pos.z - o.z; if (dx * dx + dz * dz > 12 || Math.abs(e.pos.y - o.y) > 3) continue;
       const d = Math.hypot(dx, dz); if (d < .5 + RAD && e.pos.y < o.y + 2 && e.pos.y > o.y - 1){ const k = (.5 + RAD) / (d || 1); e.pos.x = o.x + dx * k; e.pos.z = o.z + dz * k; }   // post is .5 wide at its base
-      if (e.pos.y < o.bh + .2 && e.pos.y + HGT > o.bh - .2 && e.stun <= 0){
+      if (e.pos.y < o.bh + .2 && e.pos.y + HGT > o.bh - .2){
         for (const sgn of [1, -1]){ const ux = Math.cos(o.ang) * sgn, uz = Math.sin(o.ang) * sgn; const p = dx * ux + dz * uz; if (p < 0 || p > o.len + RAD) continue; const px = dx - ux * p, pz = dz - uz * p;
-          if (Math.hypot(px, pz, Math.max(0, p - o.len)) < RAD + .2){ const s = Math.sign(o.w); knock(e, -uz * s * 7 * sgn, 4.5, ux * s * 7 * sgn, '😵', 'bonk'); break; } } }
+          const hd = Math.hypot(px, pz, Math.max(0, p - o.len)); if (hd < RAD + .2){ const s = Math.sign(o.w);
+            if (canHit(e)) knock(e, -uz * s * 7 * sgn, 4.5, ux * s * 7 * sgn, '😵', 'bonk');
+            else { const pd = Math.hypot(px, pz); const vx = pd > .03 ? px / pd : -uz * s * sgn, vz = pd > .03 ? pz / pd : ux * s * sgn; shove(e, vx * (RAD + .2 - pd + .02), vz * (RAD + .2 - pd + .02)); }
+            break; } } }
     } else if (o.type === 'dome'){
       const dx = e.pos.x - o.x, dz = e.pos.z - o.z, d = Math.hypot(dx, dz);
       if (Math.abs(e.pos.y - o.y) > 3) continue;   // obstacles one lap up/down are not on this floor
@@ -1095,7 +1106,9 @@ function obstacleHits(e, only){
       const hx = o.piv.x - o.n.x * Math.sin(o.th) * o.len, hy = o.piv.y - Math.cos(o.th) * o.len, hz = o.piv.z - o.n.z * Math.sin(o.th) * o.len;   // same transform as the mesh (rotateZ(-th))
       let near = 9; for (const py of [e.pos.y + .3, e.pos.y + .85]){ const rel = _tv.set(e.pos.x - hx, py - hy, e.pos.z - hz); const along = clamp(rel.dot(o.t), -.95, .95); rel.addScaledVector(o.t, -along); near = Math.min(near, rel.length()); }
       const rel = _tv.set(e.pos.x - hx, cy - hy, e.pos.z - hz);
-      if (near < .85 + RAD && e.stun <= 0){ const dir = -Math.sign(o.th - (o.prevTh ?? o.th)) || Math.sign(rel.dot(o.n)) || 1; knock(e, o.n.x * dir * 8, 5.5, o.n.z * dir * 8, '🤯', 'thud'); }
+      if (near < .85 + RAD){ const dir = -Math.sign(o.th - (o.prevTh ?? o.th)) || Math.sign(rel.dot(o.n)) || 1;
+        if (canHit(e)) knock(e, o.n.x * dir * 8, 5.5, o.n.z * dir * 8, '🤯', 'thud');
+        else { const side = Math.sign(rel.dot(o.n)) || dir, k = .85 + RAD - near + .02; shove(e, o.n.x * side * k, o.n.z * side * k); } }
     } else if (o.type === 'wall'){
       if (e.pos.y > o.y + 1.7 || e.pos.y + HGT < o.y) continue;
       const ds = wrap(e.a - o.a) * e.r, dr = e.r - o.rc; if (Math.abs(ds) > o.dep + RAD || Math.abs(dr) > o.half + RAD) continue;
@@ -1111,18 +1124,24 @@ function obstacleHits(e, only){
     } else if (o.type === 'jumpbar'){
       const dx = e.pos.x - o.x, dz = e.pos.z - o.z; const d = Math.hypot(dx, dz);
       if (d < .45 + RAD && e.pos.y < o.y + 1){ const k = (.45 + RAD) / (d || 1); e.pos.x = o.x + dx * k; e.pos.z = o.z + dz * k; }
-      if (e.pos.y < o.bh + .16 && e.pos.y + HGT > o.bh - .16 && e.stun <= 0){ const h = armHit(o, e, dx, dz); if (h){ const sw = Math.sign(o.w); knock(e, -h.uz * sw * 6.5 * h.sgn, 4.5, h.ux * sw * 6.5 * h.sgn, '😵', 'bonk'); } }
+      if (e.pos.y < o.bh + .16 && e.pos.y + HGT > o.bh - .16){ const h = armHit(o, e, dx, dz); if (h){ const sw = Math.sign(o.w);
+        if (canHit(e)) knock(e, -h.uz * sw * 6.5 * h.sgn, 4.5, h.ux * sw * 6.5 * h.sgn, '😵', 'bonk');
+        else { const pd = Math.hypot(h.px, h.pz); const vx = pd > .03 ? h.px / pd : -h.uz * sw * h.sgn, vz = pd > .03 ? h.pz / pd : h.ux * sw * h.sgn; shove(e, vx * (RAD + .2 - pd + .02), vz * (RAD + .2 - pd + .02)); } } }
     } else if (o.type === 'windmill'){
       const ds = wrap(e.a - o.a) * e.r; if (Math.abs(ds) > .14 + RAD + .05) continue;
       const dr = e.r - RMID; let hit = null;
       for (const py of [e.pos.y + .3, e.pos.y + .85]){ const dy = py - (o.y + o.H);
         for (let i = 0; i < 4; i++){ const phi = o.ang + i * Math.PI / 2, bx = -Math.sin(phi), by = Math.cos(phi); const pr = dr * bx + dy * by; if (pr < .2 || pr > 2.9 + RAD) continue;
           if (Math.hypot(dr * by - dy * bx, Math.max(0, pr - 2.9)) < .25 + RAD){ hit = phi; break; } } if (hit !== null) break; }
-      if (hit !== null && e.stun <= 0){ const sw = Math.sign(o.w), vr = -Math.cos(hit) * sw, vy = -Math.sin(hit) * sw; const n = nrmAt(e.a), t = tanAt(e.a);
-        knock(e, n.x * vr * 7 - t.x * 1.5, Math.max(3, vy * 5 + 3), n.z * vr * 7 - t.z * 1.5, '😵', 'bonk'); }
+      if (hit !== null){ const n = nrmAt(e.a), t = tanAt(e.a);
+        if (canHit(e)){ const sw = Math.sign(o.w), vr = -Math.cos(hit) * sw, vy = -Math.sin(hit) * sw; knock(e, n.x * vr * 7 - t.x * 1.5, Math.max(3, vy * 5 + 3), n.z * vr * 7 - t.z * 1.5, '😵', 'bonk'); }
+        else { const sd = Math.sign(ds) || -1, k = .14 + RAD + .06 - Math.abs(ds) + .01; if (k > 0) shove(e, t.x * sd * k, t.z * sd * k); } }
     } else if (o.type === 'pendulum'){
       const bx = o.piv.x - o.n.x * Math.sin(o.th) * o.L, by = o.piv.y - Math.cos(o.th) * o.L, bz = o.piv.z - o.n.z * Math.sin(o.th) * o.L;
-      for (const py of [e.pos.y + .3, e.pos.y + .85]){ if (Math.hypot(e.pos.x - bx, py - by, e.pos.z - bz) < o.rad + RAD && e.stun <= 0){ const dir = -Math.sign(o.th - (o.prevTh ?? o.th)) || 1; knock(e, o.n.x * dir * 8, 5, o.n.z * dir * 8, '🤯', 'thud'); break; } }
+      for (const py of [e.pos.y + .3, e.pos.y + .85]){ const dd = Math.hypot(e.pos.x - bx, py - by, e.pos.z - bz); if (dd < o.rad + RAD){ const dir = -Math.sign(o.th - (o.prevTh ?? o.th)) || 1;
+          if (canHit(e)) knock(e, o.n.x * dir * 8, 5, o.n.z * dir * 8, '🤯', 'thud');
+          else { const hx = e.pos.x - bx, hz = e.pos.z - bz, hd = Math.hypot(hx, hz); const ux = hd > .05 ? hx / hd : o.n.x * dir, uz = hd > .05 ? hz / hd : o.n.z * dir; const k = o.rad + RAD - dd + .02; shove(e, ux * k, uz * k); }
+          break; } }
     } else if (o.type === 'door'){
       if (e.pos.y > o.y + 2.2 || e.pos.y + HGT < o.y) continue;
       const dx = e.pos.x - o.x, dz = e.pos.z - o.z, d = Math.hypot(dx, dz); if (d > o.len + RAD + .2) continue;
@@ -1154,8 +1173,11 @@ function obstacleHits(e, only){
     }
   }
   if (!only) for (const b of world.barrels){ if (Math.abs(cy - b.y) > 2) continue; const ds = wrap(e.a - b.a) * e.r, dr = e.r - b.r; const t = tanAt(e.a), n = nrmAt(e.a);
-    if (b.kind === 'ball'){ const d = Math.min(Math.hypot(ds, dr, e.pos.y + .3 - b.y), Math.hypot(ds, dr, e.pos.y + .85 - b.y)); if (d < b.rad + RAD && e.stun <= 0){ const side = Math.sign(dr) || 1; knock(e, -t.x * 6 + n.x * side * 3, 4.5, -t.z * 6 + n.z * side * 3, '😵', 'thud'); } }
-    else if (Math.abs(ds) < .62 + RAD && Math.abs(dr) < .95 + RAD && e.stun <= 0) knock(e, -t.x * 7, 6, -t.z * 7, '😵', 'thunk'); }
+    if (b.kind === 'ball'){ const d = Math.min(Math.hypot(ds, dr, e.pos.y + .3 - b.y), Math.hypot(ds, dr, e.pos.y + .85 - b.y)); if (d < b.rad + RAD){ const side = Math.sign(dr) || 1;
+        if (canHit(e)) knock(e, -t.x * 6 + n.x * side * 3, 4.5, -t.z * 6 + n.z * side * 3, '😵', 'thud');
+        else { const hd = Math.hypot(ds, dr), k = b.rad + RAD - d + .02; const us = hd > .05 ? ds / hd : -1, ur = hd > .05 ? dr / hd : 0; shove(e, (t.x * us + n.x * ur) * k, (t.z * us + n.z * ur) * k); } } }
+    else if (Math.abs(ds) < .62 + RAD && Math.abs(dr) < .95 + RAD){ if (canHit(e)) knock(e, -t.x * 7, 6, -t.z * 7, '😵', 'thunk');
+      else { const sd = Math.sign(ds) || -1, k = .62 + RAD - Math.abs(ds) + .02; shove(e, t.x * sd * k, t.z * sd * k); } } }
 }
 
 /* ================================================================ bots */
@@ -1558,10 +1580,12 @@ function frame(now){
     camFocusY = camFocusY === null ? player.pos.y : lerp(camFocusY, player.pos.y, Math.min(1, dt * (falling ? 3 : 10)));
     const focus = new THREE.Vector3(player.pos.x, camFocusY + 1.1, player.pos.z);
     // try the normal view first, then lower / closer views; use the first one with a clear line to the runner
-    const cands = [[back, camY - camFocusY], [back, 1.6], [back * .8, .9], [back * .6, 2.2], [back * .5, .6]];
+    // (the end of lap 1 floats rather than being solid to the floor, so nothing blocks the wide view behind the start grid)
+    const cands = [[back, camY - camFocusY, 0], [back, 1.6, 0], [back * .8, .9, 0], [back * .6, 2.2, 0], [back * .5, .6, 0]];
+    const ox = Math.cos(player.a), oz = Math.sin(player.a);
     let best = null;
-    for (const [bk, hu] of cands){
-      const want = new THREE.Vector3(player.pos.x - hx * bk, camFocusY + hu, player.pos.z - hz * bk);
+    for (const [bk, hu, lat] of cands){
+      const want = new THREE.Vector3(player.pos.x - hx * bk + ox * lat, camFocusY + hu, player.pos.z - hz * bk + oz * lat);
       const dir = want.clone().sub(focus); const dist = dir.length(); dir.normalize();
       camRay.set(focus, dir); camRay.far = dist + .4;
       const hit = world && world.occluders ? camRay.intersectObjects(world.occluders, false)[0] : null;
