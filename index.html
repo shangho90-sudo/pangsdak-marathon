@@ -853,17 +853,19 @@ function obstacleHits(e){
   const cy = e.pos.y + HGT * .5;
   for (const o of world.obs){
     if (o.type === 'sweeper'){
-      const dx = e.pos.x - o.x, dz = e.pos.z - o.z; if (dx * dx + dz * dz > 12) continue;
-      const d = Math.hypot(dx, dz); if (d < .45 + RAD && e.pos.y < o.y + 2){ const k = (.45 + RAD) / (d || 1); e.pos.x = o.x + dx * k; e.pos.z = o.z + dz * k; }
+      const dx = e.pos.x - o.x, dz = e.pos.z - o.z; if (dx * dx + dz * dz > 12 || Math.abs(e.pos.y - o.y) > 3) continue;
+      const d = Math.hypot(dx, dz); if (d < .45 + RAD && e.pos.y < o.y + 2 && e.pos.y > o.y - 1){ const k = (.45 + RAD) / (d || 1); e.pos.x = o.x + dx * k; e.pos.z = o.z + dz * k; }
       if (e.pos.y < o.bh + .2 && e.pos.y + HGT > o.bh - .2 && e.stun <= 0){
         for (const sgn of [1, -1]){ const ux = Math.cos(o.ang) * sgn, uz = Math.sin(o.ang) * sgn; const p = dx * ux + dz * uz; if (p < 0 || p > o.len) continue; const px = dx - ux * p, pz = dz - uz * p;
           if (Math.hypot(px, pz) < RAD + .2){ const s = Math.sign(o.w); knock(e, -uz * s * 7 * sgn, 4.5, ux * s * 7 * sgn, '😵', 'bonk'); break; } } }
     } else if (o.type === 'dome'){
       const dx = e.pos.x - o.x, dz = e.pos.z - o.z, d = Math.hypot(dx, dz);
-      if (d < o.rad + RAD && e.pos.y < o.y + 1.5){ const nx = dx / (d || 1), nz = dz / (d || 1); e.pos.x = o.x + nx * (o.rad + RAD + .01); e.pos.z = o.z + nz * (o.rad + RAD + .01);
+      if (Math.abs(e.pos.y - o.y) > 3) continue;   // obstacles one lap up/down are not on this floor
+      if (d < o.rad + RAD && e.pos.y < o.y + 1.5 && e.pos.y > o.y - 1){ const nx = dx / (d || 1), nz = dz / (d || 1); e.pos.x = o.x + nx * (o.rad + RAD + .01); e.pos.z = o.z + nz * (o.rad + RAD + .01);
         if (e.stun <= 0){ knock(e, nx * 10, 5, nz * 10, '😵‍💫', 'none'); o.squash = 1; if (e === player || (player && e.pos.distanceTo(player.pos) < 7)) Audio.play('bounce', e === player ? 1 : .4); } }
       else if (d < o.rad && e.pos.y >= o.y + 1.3 && e.vel.y <= 0 && e.pos.y < o.y + 1.9){ e.vel.y = 12; o.squash = 1; if (e === player) Audio.play('bounce'); }
     } else if (o.type === 'hammer'){
+      if (Math.abs(e.pos.y - o.y) > 7) continue;
       const hx = o.piv.x + o.n.x * Math.sin(o.th) * o.len, hy = o.piv.y - Math.cos(o.th) * o.len, hz = o.piv.z + o.n.z * Math.sin(o.th) * o.len;
       const rel = _tv.set(e.pos.x - hx, cy - hy, e.pos.z - hz); const along = clamp(rel.dot(o.t), -.95, .95); rel.addScaledVector(o.t, -along);
       if (rel.length() < .85 + RAD + .1 && e.stun <= 0){ const dir = Math.sign(o.th - (o.prevTh ?? o.th)) || Math.sign(rel.dot(o.n)) || 1; knock(e, o.n.x * dir * 9, 6, o.n.z * dir * 9, '🤯', 'thud'); }
@@ -1312,7 +1314,7 @@ function simulate(dt){
 let simT = 0;
 function confetti(){ if (!player) return; FX.confetti(player.pos.x, player.pos.y, player.pos.z, 170); setTimeout(() => player && FX.confetti(player.pos.x, player.pos.y + .5, player.pos.z, 90), 450); }
 
-window.__lab = { sim(sec){ for (let i = 0; i < sec * 60; i++){ simulate(1 / 60); if (G_.mode === 'revive' && window.__auto) skipRevive(); if (G_.mode === 'count'){ G_.count -= 1 / 60; if (G_.count <= 0){ G_.mode = 'play'; G_.paused = false; } } } }, get player(){ return player; }, get ents(){ return ents; }, get world(){ return world; }, G_, roadTop, setPolar, blockedAt, support, spotIsSafe, startGame, endGame, resetInput, Rank, Audio, EV, FX, Perf, renderer, TIME_LIMIT, get touchVec(){ return touchVec; }, get camYaw(){ return camYaw; }, get buildCount(){ return buildCount; }, THREE, scene };
+window.__lab = { sim(sec){ for (let i = 0; i < sec * 60; i++){ simulate(1 / 60); if (G_.mode === 'revive' && window.__auto) skipRevive(); if (G_.mode === 'count'){ G_.count -= 1 / 60; if (G_.count <= 0){ G_.mode = 'play'; G_.paused = false; } } } }, get player(){ return player; }, get ents(){ return ents; }, get world(){ return world; }, G_, roadTop, setPolar, blockedAt, support, spotIsSafe, startGame, endGame, resetInput, Rank, Audio, EV, FX, Perf, renderer, TIME_LIMIT, get touchVec(){ return touchVec; }, get camYaw(){ return camYaw; }, get buildCount(){ return buildCount; }, THREE, scene, camera };
 /* ================================================================ boot */
 (async function boot(){
   buildDecor(); buildCourse(hashStr('pangsdak' + todayKey()));

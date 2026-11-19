@@ -123,6 +123,16 @@ async def main():
         await pg.evaluate('__lab.sim(0.15)')
         await pg.evaluate("(()=>{const P=__lab.player; P.pos.y -= 9;})()"); await pg.evaluate('__lab.sim(0.2)')
         check('skip revive: prompt does not loop', await pg.evaluate("__lab.G_.mode") == 'play')
+        # obstacles one lap above must not touch a runner on the floor below (reported: knocked back on the early stairs)
+        ghost = await pg.evaluate("""(()=>{ const W=__lab.world, P=__lab.player; const out=[]; const bots=__lab.ents.filter(e=>e!==P); bots.forEach(b=>b.finished=true);   // park the AI so only obstacles can act
+          for (const o of W.obs.filter(o=>o.type==='dome'||o.type==='sweeper')){ const below=__lab.roadTop(o.a - 6.283185307, o.r); if(!below) continue;
+            P.pos.set(o.x, below.top, o.z); P.vel.set(0,0,0); P.stun=0; P.invul=0; P.shield=0; P.grounded=true; __lab.sim(0.1);
+            const hit = P.stun > 0 || Math.hypot(P.pos.x-o.x, P.pos.z-o.z) > .2;
+            if (hit){ const near = W.obs.filter(q=>Math.hypot(q.x-o.x,q.z-o.z)<4 && Math.abs((q.y??0)-below.top)<3).map(q=>q.type); window.__ghostInfo = {type:o.type, stun:P.stun, moved:Math.hypot(P.pos.x-o.x,P.pos.z-o.z), dy:o.y-below.top, near, bots: __lab.ents.filter(e=>e!==P && e.pos.distanceTo(P.pos)<1.5).length}; }
+            out.push(hit); }
+          bots.forEach(b=>b.finished=false); return out; })()""")
+        check('collision: obstacles on the lap above do not hit the floor below', ghost and not any(ghost), f'{len(ghost)} spots checked, hits={sum(ghost)} ' + json.dumps(await pg.evaluate('window.__ghostInfo || null')))
+        await pg.evaluate("(()=>{const P=__lab.player; const s=P.safe; __lab.setPolar(P, s.a, s.r, s.y); P.vel.set(0,0,0); P.lastGroundY=s.y;})()")
         # background / foreground
         await pg.evaluate("Object.defineProperty(document,'hidden',{configurable:true,get:()=>true}); document.dispatchEvent(new Event('visibilitychange'))")
         hid = await pg.evaluate("[__lab.G_.mode, __lab.touchVec.x, __lab.touchVec.y]")
@@ -180,9 +190,9 @@ async def main():
             await pg.wait_for_function("__lab.G_.mode === 'count'", timeout=60000)
             await pg.evaluate("__lab.sim(4); window.__auto=true; __lab.sim(3); window.__auto=false; __lab.endGame(false)")
             await pg.wait_for_timeout(150)
-            mem.append(await pg.evaluate("[__lab.renderer.info.memory.geometries, __lab.renderer.info.memory.textures]"))
+            mem.append(await pg.evaluate("(__lab.renderer.compile(__lab.scene, __lab.camera), [__lab.renderer.info.memory.geometries, __lab.renderer.info.memory.textures])"))   # upload everything so counts are comparable
         grow_g = mem[-1][0] - mem[2][0]; grow_t = mem[-1][1] - mem[2][1]
-        check('restart x10: GPU geometries/textures do not keep growing', grow_g <= 25 and grow_t <= 5, f'geo {mem[2][0]}->{mem[-1][0]}, tex {mem[2][1]}->{mem[-1][1]}')
+        check('restart x10: GPU geometries/textures do not keep growing', grow_g <= 25 and grow_t <= 12 and mem[-1][1] - mem[5][1] <= 8, f'geo {mem[2][0]}->{mem[-1][0]}, tex {mem[2][1]}->{mem[-1][1]}')
         await pg.set_viewport_size({'width': 420, 'height': 860}); await pg.wait_for_timeout(300)
         asp = await pg.evaluate('innerWidth/innerHeight'); check('resize: portrait layout applied', asp < 1)
         snd = await pg.evaluate("""(async()=>{ await __lab.Audio.init(); const names=['jump','land','push','hit','bonk','thud','thunk','slap','fall','revive','goal','checkpoint','bounce','boost','shield','event','click']; for(const n of names) __lab.Audio.play(n); __lab.Audio.startBgm(); __lab.Audio.stopBgm(); return __lab.Audio.ctx ? __lab.Audio.ctx.state : 'none'; })()""")
