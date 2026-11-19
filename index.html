@@ -47,11 +47,12 @@ button{font:inherit;cursor:pointer;border:0;color:inherit}
 #event small{display:block;font-family:'Jua';font-size:16px;color:#fff;text-shadow:0 2px 0 #0007}
 #event b{display:block;font-family:'Jua';font-weight:400;font-size:44px;color:var(--gold);-webkit-text-stroke:2px #5a3a00;text-shadow:0 4px 0 #0006,0 0 18px rgba(255,200,60,.6);white-space:nowrap}
 #event i{display:block;font-style:normal;font-family:'Jua';color:var(--gold);font-size:20px;-webkit-text-stroke:1px #5a3a00}
-#toast{position:fixed;left:50%;top:47%;transform:translate(-50%,-50%) scale(.8);font-family:'Jua';font-size:36px;color:#fff;text-align:center;-webkit-text-stroke:2px #0B1A33;text-shadow:0 4px 0 #0008;pointer-events:none;opacity:0;transition:opacity .2s,transform .2s;white-space:nowrap}
+#toast{position:fixed;left:50%;top:47%;transform:translate(-50%,-50%) scale(.8);font-family:'Jua';font-size:clamp(20px,6.4vw,36px);line-height:1.25;max-width:92vw;width:max-content;color:#fff;text-align:center;-webkit-text-stroke:2px #0B1A33;text-shadow:0 4px 0 #0008;pointer-events:none;opacity:0;transition:opacity .2s,transform .2s;word-break:keep-all}
 #toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #keys{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 12px);left:50%;transform:translateX(-50%);padding:9px 22px;border-radius:18px;font-size:15px;font-weight:700;gap:6px;white-space:nowrap;pointer-events:none;border-color:rgba(130,200,255,.8);box-shadow:0 0 16px rgba(90,180,255,.45),inset 0 1px 0 rgba(255,255,255,.25)}
 #keys kbd{display:inline-block;min-width:26px;padding:2px 7px;border:2px solid #dfe9ff;border-radius:7px;font:900 14px/1.2 'Noto Sans KR',sans-serif;text-align:center;background:rgba(255,255,255,.08)}
 #keys .sep{opacity:.35;margin:0 8px}
+@keyframes popIn{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}.stat b.pop{animation:popIn .6s ease-out both;color:var(--gold)}
 #go{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-family:'Jua';font-size:130px;background:linear-gradient(180deg,#fff6b0,#ffd23f 45%,#e09a00);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:3px #8a5a00;filter:drop-shadow(0 6px 0 rgba(0,0,0,.35)) drop-shadow(0 0 22px rgba(255,200,60,.8))}
 /* touch */
 #touch{position:fixed;inset:0;pointer-events:none}
@@ -60,7 +61,8 @@ button{font:inherit;cursor:pointer;border:0;color:inherit}
 .tbtn{position:absolute;border-radius:50%;pointer-events:auto;font-family:'Jua';font-size:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 0 rgba(0,0,0,.35),0 0 16px rgba(255,255,255,.25);border:2px solid rgba(255,255,255,.7)}
 #bJump{right:calc(env(safe-area-inset-right) + 20px);bottom:calc(env(safe-area-inset-bottom) + 44px);width:96px;height:96px;background:linear-gradient(180deg,#ffe066,#ffb800);color:#5a3a00}
 #bPush{right:calc(env(safe-area-inset-right) + 128px);bottom:calc(env(safe-area-inset-bottom) + 24px);width:72px;height:72px;background:linear-gradient(180deg,#ff7cc0,#e8338a);color:#fff}
-.tbtn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.tbtn:active,.tbtn.down{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.35)}
+#touch .tbtn,#stick{opacity:.82;-webkit-touch-callout:none;-webkit-user-select:none;touch-action:none}
 /* cover */
 #sCover{position:fixed;inset:0;background:#0b1a33;display:flex;align-items:center;justify-content:center}
 #sCover .bg{position:absolute;inset:-20px;background:url(cover.webp) center/cover;filter:blur(18px) brightness(.6)}
@@ -128,14 +130,15 @@ ol.rank li .s{margin-left:auto;font-family:'Jua';font-size:18px;text-align:right
 
 <div id="sCover" class="hidden"><div class="bg"></div><div id="coverBox"><button class="hot" id="btnStart" aria-label="START"></button><button class="hot" id="btnExit" aria-label="EXIT"></button></div></div>
 
-<div class="screen" id="sLoad"><div class="card"><h1>팽스닥 <span>마라톤</span></h1><p class="sub" id="loadMsg">캐릭터와 코스를 준비하는 중…</p><div id="loadbar"><i></i></div></div></div>
+<div class="screen" id="sLoad"><div class="card"><h1>팽스닥 <span>마라톤</span></h1><p class="sub" id="loadMsg">캐릭터와 코스를 준비하는 중…</p><div id="loadbar"><i></i></div>
+  <div id="loadErr" class="hidden" style="margin-top:14px"><p class="sub" id="loadErrMsg" style="color:#ffb3c9"></p><div class="row"><button class="ghost" id="loadRetry">🔄 다시 시도</button><button class="ghost" id="loadHome">처음으로</button></div></div></div></div>
 
 <div class="screen hidden" id="sTitle"><div class="card">
   <div class="brand"><span>🏃 팽스닥 마라톤</span><span id="soundTop" style="cursor:pointer">🔊 사운드 켜짐</span></div>
   <h1>정상까지 <span>오르는</span> 미니게임</h1>
   <p class="sub">빙글빙글 도는 탑을 끝까지 오르세요. 떨어지면 부활 한 번. <b>혈압 주의.</b></p>
   <div class="label">닉네임 (랭킹에 표시돼요)</div>
-  <div class="nick"><input id="nickIn" maxlength="10" placeholder="닉네임 입력" autocomplete="off"></div>
+  <div class="nick"><input id="nickIn" maxlength="10" placeholder="닉네임 입력 (한글·영문·숫자 10자)" autocomplete="off" enterkeyhint="done"></div><div class="small" id="nickHint" style="margin:-6px 0 8px;text-align:left;color:#ffb3c9"></div>
   <div class="label">캐릭터 선택</div><div class="chars" id="chars"></div>
   <button class="big" id="dailyBtn">오늘의 도전</button>
   <div class="row"><button class="ghost" id="practiceBtn">연습 모드</button><button class="ghost" id="rankBtn">🏆 랭킹</button><button class="ghost" id="rulesBtn">ⓘ 규칙 보기</button></div>
@@ -175,6 +178,7 @@ ol.rank li .s{margin-left:auto;font-family:'Jua';font-size:18px;text-align:right
   <h1 id="resTitle" style="font-size:34px">게임 끝!</h1><p class="sub" id="resSub"></p>
   <div class="stat"><div><b id="resRank">-</b><span>순위</span></div><div><b id="resScore">0</b><span>점수</span></div><div><b id="resProg">0%</b><span>진행도</span></div><div><b id="resTime">0s</b><span>시간</span></div></div>
   <div class="small" id="resBoard" style="margin:0 0 10px;font-size:14px;color:#fff"></div>
+  <button class="ghost hidden" id="resRetry" style="width:100%;margin-bottom:10px">🔄 랭킹 저장 다시 시도</button>
   <button class="big" id="againBtn">한 판 더!</button>
   <div class="row"><button class="ghost" id="resRankBtn">🏆 랭킹 보기</button><button class="ghost" id="shareBtn">📋 기록 복사</button><button class="ghost" id="homeBtn2">처음으로</button></div>
   <div class="small" id="shareInfo"></div>
@@ -235,17 +239,23 @@ const Audio = {
     return Promise.resolve();
   },
   resume(){ if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume().catch(()=>{}); },
+  suspend(){ if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(()=>{}); },
   toggle(){ this.on = !this.on; store.set('labtower-sound', this.on); if (this.master) this.master.gain.value = this.on ? 1 : 0; return this.on; },
   play(n, vol = 1){
     if (!this.ctx || !this.on) return; const c = this.ctx, t = c.currentTime;
+    if (!this.buf[n] && ['bonk', 'thud', 'thunk', 'slap'].includes(n) && this.buf.hit) n = 'hit';
     if (this.buf[n]){ const s = c.createBufferSource(), g = c.createGain(); s.buffer = this.buf[n]; g.gain.value = vol * .8; s.connect(g).connect(this.master); s.start(); return; }
     const o = (type, f0, f1, dur, v = .25, d = 0) => { const os = c.createOscillator(), g = c.createGain(); os.type = type; os.frequency.setValueAtTime(f0, t + d); os.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + d + dur); g.gain.setValueAtTime(v * vol, t + d); g.gain.exponentialRampToValueAtTime(.001, t + d + dur); os.connect(g).connect(this.master); os.start(t + d); os.stop(t + d + dur + .02); };
-    const nz = (dur, f, v = .3, q = 1, d = 0) => { const b = c.createBuffer(1, c.sampleRate * dur, c.sampleRate), ch = b.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length); const s = c.createBufferSource(), bf = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bf.type = 'bandpass'; bf.frequency.value = f; bf.Q.value = q; g.gain.value = v * vol; s.connect(bf).connect(g).connect(this.master); s.start(t + d); };
+    const nz = (dur, f, v = .3, q = 1, d = 0) => { const key = 'nz' + dur; let b = this.noise && this.noise[key]; if (!b){ b = c.createBuffer(1, c.sampleRate * dur, c.sampleRate); const ch = b.getChannelData(0); for (let i = 0; i < ch.length; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / ch.length); (this.noise = this.noise || {})[key] = b; } const s = c.createBufferSource(), bf = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; bf.type = 'bandpass'; bf.frequency.value = f; bf.Q.value = q; g.gain.value = v * vol; s.connect(bf).connect(g).connect(this.master); s.start(t + d); };
     switch(n){
       case 'jump': o('square', 260, 720, .15, .1); break;
       case 'land': nz(.07, 300, .3, .8); break;
       case 'push': nz(.2, 900, .35, .6); o('triangle', 180, 90, .14, .2); break;
       case 'hit': o('sine', 240, 60, .25, .45); nz(.12, 500, .3); break;
+      case 'bonk': o('square', 520, 180, .12, .18); o('sine', 300, 90, .18, .3); break;
+      case 'thud': o('sine', 140, 40, .35, .55); nz(.2, 180, .35, .7); break;
+      case 'thunk': o('triangle', 210, 70, .22, .4); nz(.1, 900, .2); break;
+      case 'slap': nz(.09, 2400, .4, .8); o('sine', 380, 160, .08, .2); break;
       case 'fall': o('triangle', 900, 120, 1.1, .22); break;
       case 'revive': [523,659,784,1047].forEach((f, i) => o('triangle', f, f, .18, .2, i * .08)); break;
       case 'goal': [523,659,784,1047,784,1047].forEach((f, i) => o('square', f, f, .2, .12, i * .12)); break;
@@ -292,7 +302,7 @@ const GFX = { high: store.get('pangsdak-gfx', true) };
 function resize(){ const w = innerWidth, h = innerHeight; const pr = Math.min(devicePixelRatio, GFX.high ? (isTouch ? 1.5 : 1.75) : 1);
   renderer.setPixelRatio(pr); renderer.setSize(w, h, false); composer.setPixelRatio(pr); composer.setSize(w, h); bloom.resolution.set(w * pr / 2, h * pr / 2);
   camera.aspect = w / h; camera.fov = w < h ? 76 : 62; camera.updateProjectionMatrix(); }
-function setGfx(high){ GFX.high = high; store.set('pangsdak-gfx', high); sun.shadow.mapSize.set(high ? 2048 : 1024, high ? 2048 : 1024); if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; } resize(); }
+function setGfx(high){ GFX.high = high; store.set('pangsdak-gfx', high); const sm = high ? (isTouch ? 1024 : 2048) : 1024; sun.shadow.mapSize.set(sm, sm); sun.castShadow = high || !isTouch; if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; } resize(); }
 addEventListener('resize', resize);
 
 const sky = new THREE.Mesh(new THREE.SphereGeometry(600, 32, 16), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false,
@@ -302,7 +312,7 @@ const sky = new THREE.Mesh(new THREE.SphereGeometry(600, 32, 16), new THREE.Shad
 scene.add(sky);
 scene.fog = new THREE.Fog(0xbcd6ff, 130, 380);
 const hemi = new THREE.HemisphereLight(0xe6f0ff, 0x7a86b8, 1.05); scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff6ea, 1.55); sun.castShadow = true; sun.shadow.mapSize.set(GFX.high ? 2048 : 1024, GFX.high ? 2048 : 1024);
+const sun = new THREE.DirectionalLight(0xfff6ea, 1.55); sun.castShadow = GFX.high || !isTouch; { const sm = GFX.high ? (isTouch ? 1024 : 2048) : 1024; sun.shadow.mapSize.set(sm, sm); }
 Object.assign(sun.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, near: 1, far: 80 }); sun.shadow.bias = -.0006; sun.shadow.normalBias = .02;
 scene.add(sun, sun.target);
 resize();
@@ -341,7 +351,7 @@ function textSprite(txt, color = '#fff', bg = 'rgba(11,26,51,.8)', scale = 1, fo
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false, transparent: true })); s.scale.set(w / 68 * .34 * scale, .34 * scale, 1); s.renderOrder = 5; return s; }
 const emojiCache = {};
-function emojiTex(e){ if (emojiCache[e]) return emojiCache[e]; const t = canvasTex(128, 128, (g) => { g.fillStyle = '#fff'; g.beginPath(); g.arc(64, 60, 54, 0, 7); g.fill(); g.beginPath(); g.moveTo(54, 108); g.lineTo(64, 126); g.lineTo(76, 108); g.fill(); g.font = '64px "Apple Color Emoji","Segoe UI Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(e, 64, 64); }, false); emojiCache[e] = t; return t; }
+function emojiTex(e){ if (emojiCache[e]) return emojiCache[e]; const t = canvasTex(128, 128, (g) => { g.fillStyle = '#fff'; g.beginPath(); g.arc(64, 60, 54, 0, 7); g.fill(); g.beginPath(); g.moveTo(54, 108); g.lineTo(64, 126); g.lineTo(76, 108); g.fill(); g.font = '64px "Apple Color Emoji","Segoe UI Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(e, 64, 64); }, false); t.userData.shared = true; emojiCache[e] = t; return t; }
 
 /* ================================================================ geometry helpers */
 // Solid annular "sector" whose top can follow a function (ramps) – groups: 0 = top, 1 = sides.
@@ -364,10 +374,66 @@ function solidSector(a0, a1, r0, r1, topAt, botAt, uScale = 6){
 }
 const std = (color, extra = {}) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: .55, metalness: .02 }, extra));
 
+/* ================================================================ resource ownership (dispose what we create, never shared/cached assets) */
+function disposeOwned(o){
+  if (o.geometry && !(o.geometry.userData && o.geometry.userData.shared)) o.geometry.dispose();
+  const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+  for (const m of ms){ if (m.userData && m.userData.shared) continue; for (const k of ['map', 'emissiveMap', 'alphaMap']){ const t = m[k]; if (t && !(t.userData && t.userData.shared)) t.dispose(); } m.dispose(); }
+}
+function disposeTree(root){ root.traverse(disposeOwned); }
+const shared = x => { x.userData.shared = true; if (x.map) x.map.userData.shared = true; return x; };
+
+/* ================================================================ pooled particle effects (one draw call per pool) */
+const FX = (() => {
+  const tex = draw => { const t = canvasTex(64, 64, draw, false); t.userData.shared = true; return t; };
+  const starTex = tex(g => { g.translate(32, 32); g.fillStyle = '#fff'; g.beginPath(); for (let i = 0; i < 10; i++){ const r = i % 2 ? 11 : 28, a = i / 10 * TAU - Math.PI / 2; i ? g.lineTo(Math.cos(a) * r, Math.sin(a) * r) : g.moveTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); });
+  const puffTex = tex(g => { const gr = g.createRadialGradient(32, 32, 0, 32, 32, 30); gr.addColorStop(0, 'rgba(255,255,255,.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); });
+  const rectTex = tex(g => { g.fillStyle = '#fff'; g.fillRect(16, 6, 32, 52); });
+  const pools = {};
+  const mk = (name, map, n, blend) => { const geo = new THREE.PlaneGeometry(1, 1); const mat = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false, blending: blend || THREE.NormalBlending, side: THREE.DoubleSide });
+    const im = new THREE.InstancedMesh(geo, mat, n); im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.frustumCulled = false; im.count = 0; im.renderOrder = 4;
+    for (let i = 0; i < n; i++) im.setColorAt(i, new THREE.Color(1, 1, 1)); scene.add(im); pools[name] = { im, n, ps: [] }; };
+  mk('star', starTex, 160); mk('puff', puffTex, 160); mk('conf', rectTex, 260);
+  const rings = []; for (let i = 0; i < 8; i++){ const m = new THREE.Mesh(new THREE.RingGeometry(.45, .6, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })); m.visible = false; m.renderOrder = 4; scene.add(m); rings.push({ m, life: 0, max: 1, grow: 1 }); }
+  const lowMul = () => GFX.high ? 1 : .5;
+  const emit = (name, x, y, z, o) => { const P = pools[name]; if (P.ps.length >= P.n) P.ps.shift(); P.ps.push(Object.assign({ x, y, z, vx: 0, vy: 0, vz: 0, g: 0, life: 0, max: .6, size: .3, rot: 0, spin: 0, col: new THREE.Color(1, 1, 1), drag: 0 }, o)); };
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const STAR_COLS = [0xffd23f, 0xffffff, 0xfff1a0, 0xffb02e].map(c => new THREE.Color(c));
+  const CONF_COLS = [0xffd23f, 0x4ff0c8, 0xff4fa3, 0x6fd3ff, 0xffffff, 0x9b6bff].map(c => new THREE.Color(c));
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), qq = new THREE.Quaternion(), qz = new THREE.Quaternion(), zAx = new THREE.Vector3(0, 0, 1), pv = new THREE.Vector3(), sv = new THREE.Vector3();
+  return {
+    stars(x, y, z, n = 8){ n = Math.ceil(n * lowMul()); for (let i = 0; i < n; i++){ const a = rnd(0, TAU), sp = rnd(1.5, 3.5); emit('star', x, y, z, { vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: rnd(1.5, 4), g: -9, max: rnd(.45, .7), size: rnd(.18, .32), spin: rnd(-8, 8), col: STAR_COLS[i % 4] }); } },
+    dust(x, y, z, n = 6){ n = Math.ceil(n * lowMul()); for (let i = 0; i < n; i++){ const a = rnd(0, TAU), sp = rnd(.6, 1.6); emit('puff', x + Math.cos(a) * .2, y + .08, z + Math.sin(a) * .2, { vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: rnd(.3, .9), g: -1, max: rnd(.35, .55), size: rnd(.3, .5), drag: 3, col: new THREE.Color(.95, .96, 1) }); } },
+    confetti(x, y, z, n = 160){ n = Math.ceil(n * lowMul()); for (let i = 0; i < n; i++){ const a = rnd(0, TAU), sp = rnd(1, 5); emit('conf', x, y + rnd(.8, 1.6), z, { vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: rnd(5, 10), g: -7, drag: .8, max: rnd(2.2, 3.2), size: rnd(.14, .22), spin: rnd(-10, 10), col: CONF_COLS[i % CONF_COLS.length] }); } },
+    ring(x, y, z, color = 0xffffff){ const r = rings.find(r => r.life <= 0) || rings[0]; r.m.position.set(x, y, z); r.m.rotation.set(-Math.PI / 2, 0, 0); r.m.material.color.set(color); r.life = r.max = .35; r.grow = 3.2; r.m.visible = true; },
+    wave(x, y, z, yaw){ const r = rings.find(r => r.life <= 0) || rings[0]; r.m.position.set(x, y, z); r.m.rotation.set(0, yaw, 0); r.m.material.color.set(0xffe27a); r.life = r.max = .25; r.grow = 2.4; r.m.visible = true; },
+    update(dt){
+      q.copy(camera.quaternion);
+      for (const name in pools){ const P = pools[name]; let k = 0;
+        for (let i = 0; i < P.ps.length; i++){ const p = P.ps[i]; p.life += dt; if (p.life >= p.max) continue;
+          p.vy += p.g * dt; if (p.drag){ const f = Math.exp(-p.drag * dt); p.vx *= f; p.vz *= f; if (name === 'conf') p.vy = Math.max(p.vy, -2.2); }
+          p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.rot += p.spin * dt;
+          const fade = 1 - p.life / p.max, s = p.size * (name === 'puff' ? (1 + p.life * 2) * fade : Math.min(1, fade * 2.5));
+          qz.setFromAxisAngle(zAx, p.rot); m4.compose(pv.set(p.x, p.y, p.z), qq.copy(q).multiply(qz), sv.set(s, name === 'conf' ? s * 1.6 : s, s)); P.im.setMatrixAt(k, m4); P.im.setColorAt(k, p.col); P.ps[k++] = p; }
+        P.ps.length = k; P.im.count = k; P.im.instanceMatrix.needsUpdate = true; if (P.im.instanceColor) P.im.instanceColor.needsUpdate = true; }
+      for (const r of rings){ if (r.life <= 0) continue; r.life -= dt; const t = 1 - r.life / r.max; const sc = .4 + t * r.grow; r.m.scale.set(sc, sc, sc); r.m.material.opacity = .85 * (1 - t); if (r.life <= 0) r.m.visible = false; }
+    }
+  };
+})();
+
+/* ================================================================ adaptive quality: drop to low if the first seconds of a race run slowly */
+const Perf = { t0: 0, frames: 0, done: false,
+  reset(){ this.t0 = 0; this.frames = 0; this.done = false; },
+  tick(){ if (this.done || G_.mode !== 'play') return; const now = performance.now(); if (!this.t0){ this.t0 = now; return; } this.frames++;
+    const el = (now - this.t0) / 1000; if (el < 5) return; this.done = true; const fps = this.frames / el; this.lastFps = fps;
+    if (fps < 38 && GFX.high && !store.get('pangsdak-gfx-manual', false)){ setGfx(false); updateDailyUI(); toast('부드러운 플레이를 위해 저화질로 바꿨어요', 1.8); } } };
+
 /* ================================================================ course */
 let world = null;
+let buildCount = 0;
 function buildCourse(seed){
-  if (world){ scene.remove(world.group); world.group.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+  buildCount++;
+  if (world){ scene.remove(world.group); disposeTree(world.group); world.barrels.length = 0; }
   const R = rng(seed);
   const group = new THREE.Group(); scene.add(group);
   const segs = [], obs = [], pads = [], spawners = [], stageStarts = [];
@@ -472,13 +538,14 @@ function edgeDeco(group, s){
   }
   group.add(new THREE.Mesh(new THREE.TubeGeometry(line(s.r0 + .07, .07), N, .07, 6), glow(0xff4fc0, 5)));
   if (s.kind === 'ramp' && s.rail){
-    floorChev = floorChev || new THREE.MeshBasicMaterial({ map: chevronTex(), transparent: true, depthWrite: false, color: new THREE.Color(1.8, 2.4, 2.8), polygonOffset: true, polygonOffsetFactor: -2 });
+    floorChev = floorChev || shared(new THREE.MeshBasicMaterial({ map: chevronTex(), transparent: true, depthWrite: false, color: new THREE.Color(1.8, 2.4, 2.8), polygonOffset: true, polygonOffsetFactor: -2 }));
     const len = (s.a1 - s.a0) * RMID; for (let d = 4; d < len - 2; d += 11){ const aa = s.a0 + d / RMID; for (const rr of [RMID - 1.6, RMID + 1.6]){ const m = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), floorChev); m.position.copy(P(aa, rr, topAt(aa) + .03)); const tdir = new THREE.Vector3(-Math.sin(aa), 0, Math.cos(aa)); m.rotation.set(-Math.PI / 2, 0, Math.atan2(tdir.x, tdir.z) + Math.PI); group.add(m); } }
   }
 }
 /* ---------------- obstacles */
 const MAT = {}; function mats(){ if (MAT.pink) return MAT;
   Object.assign(MAT, { pink: std(0xe6457a), navy: std(0x0d1f4a), yellow: std(0xf2c230, { metalness: .2 }), wine: std(0x5c0f2e), blue: std(0x1243c9), domeA: std(0xffffff, { map: stripeTex('#7a4fd6', '#e85a9a', 8) }), slime: std(0x55e86a, { roughness: .3, transparent: true, opacity: .9 }), grey: std(0x8e95a8, { metalness: .4, roughness: .4 }), white: std(0xffffff), barrel: std(0xffffff, { map: stripeTex('#e6457a', '#ffffff', 6) }), cyan: std(0x7ff3ff, { transparent: true, opacity: .45, emissive: 0x2ad3ff, emissiveIntensity: .5 }) });
+  for (const k in MAT) shared(MAT[k]); MAT.barrelGeo = new THREE.CylinderGeometry(.62, .62, 1.9, 20); MAT.barrelGeo.userData.shared = true;
   return MAT; }
 function makeSweeper(a, r, y, w){
   const M = mats(), g = new THREE.Group(); const c = P(a, r, y); g.position.copy(c);
@@ -508,7 +575,7 @@ function makeSlime(a, r, y){ const g = new THREE.Group(); const c = P(a, r, y); 
   for (let i = 0; i < 4; i++){ const b = new THREE.Mesh(new THREE.SphereGeometry(.18 + Math.random() * .15, 10, 8), mats().slime); b.position.set((Math.random() - .5) * 2, .05, (Math.random() - .5) * 1.5); b.scale.y = .6; g.add(b); }
   return { type: 'slime', a, r, y, x: c.x, z: c.z, rad: 1.45, mesh: g }; }
 let chevTex = null;
-function makePad(a, r, y){ chevTex = chevTex || chevronTex(); const g = new THREE.Group(); const c = P(a, r, y + .03); g.position.copy(c);
+function makePad(a, r, y){ if (!chevTex){ chevTex = chevronTex(); chevTex.userData.shared = true; } const g = new THREE.Group(); const c = P(a, r, y + .03); g.position.copy(c);
   const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), new THREE.MeshBasicMaterial({ map: chevTex, transparent: true, depthWrite: false }));
   m.rotation.x = -Math.PI / 2; m.rotation.z = -(a + Math.PI / 2) + Math.PI / 2 - Math.PI / 2; g.add(m);
   // orient chevrons along +tangent
@@ -588,8 +655,8 @@ function buildDecor(){
   const sg = new THREE.ExtrudeGeometry(starShape, { depth: .6, bevelEnabled: false }); for (let i = 0; i < 8; i++){ const s = new THREE.Mesh(sg, std(0xd4a514, { metalness: .6, roughness: .3 })); const a = R() * TAU, r = 22 + R() * 30; s.position.set(Math.cos(a) * r, 10 + R() * 45, Math.sin(a) * r); decor.add(s); spinners.push({ o: s, w: .8, y: true }); }
 }
 function updateSpectators(t){ const b = spectators.body, h = spectators.head; if (!b) return; const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), up = new THREE.Vector3(0, 1, 0);
-  spectators.base.forEach((p, i) => { const jump = Math.max(0, Math.sin(t * p.sp + p.ph)) * .35; const x = Math.cos(p.a) * p.r, z = Math.sin(p.a) * p.r; q.setFromAxisAngle(up, -p.a - Math.PI / 2);
-    m.compose(new THREE.Vector3(x, p.y + .38 + jump, z), q, s); b.setMatrixAt(i, m); m.compose(new THREE.Vector3(x, p.y + .97 + jump, z), q, s); h.setMatrixAt(i, m); });
+  const v = new THREE.Vector3(); spectators.base.forEach((p, i) => { const jump = Math.max(0, Math.sin(t * p.sp + p.ph)) * .35; const x = Math.cos(p.a) * p.r, z = Math.sin(p.a) * p.r; q.setFromAxisAngle(up, -p.a - Math.PI / 2);
+    m.compose(v.set(x, p.y + .38 + jump, z), q, s); b.setMatrixAt(i, m); m.compose(v.set(x, p.y + .97 + jump, z), q, s); h.setMatrixAt(i, m); });
   b.instanceMatrix.needsUpdate = h.instanceMatrix.needsUpdate = true; }
 
 /* ================================================================ characters */
@@ -598,8 +665,14 @@ async function loadChar(id){
   if (charCache[id]) return charCache[id];
   if (!loadChar.p) loadChar.p = {}; if (loadChar.p[id]) return loadChar.p[id];
   loadChar.p[id] = (async () => {
-    // model files are base64-wrapped GLBs exported from Blender
-    const resp = await fetch(`models/c${id}.json`); if (!resp.ok) throw new Error('model ' + id);
+    // model files are base64-wrapped GLBs exported from Blender; transient network errors are retried twice
+    let resp = null, lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++){
+      try { resp = await fetch(`models/c${id}.json`); if (resp.ok) break; lastErr = new Error('HTTP ' + resp.status); resp = null; }
+      catch(err){ lastErr = err; resp = null; }
+      await new Promise(r => setTimeout(r, 600 * (attempt + 1) ** 2));
+    }
+    if (!resp) throw lastErr || new Error('model ' + id);
     const b64 = (await resp.json()).glb; const bin = Uint8Array.from(atob(b64), ch => ch.charCodeAt(0));
     const gltf = await new Promise((res, rej) => loader.parse(bin.buffer, '', res, rej));
     const root = gltf.scene; root.traverse(o => { if (o.isMesh){ o.castShadow = true; o.frustumCulled = false; } });
@@ -609,6 +682,7 @@ async function loadChar(id){
     charCache[id] = { scene: root, clips: gltf.animations, scale: HGT * 1.05 / h, minY: box.min.y, cx: (box.min.x + box.max.x) / 2, cz: (box.min.z + box.max.z) / 2 };
     return charCache[id];
   })();
+  loadChar.p[id].catch(() => { delete loadChar.p[id]; });   // allow a later retry instead of caching the failure
   return loadChar.p[id];
 }
 function makeAvatar(id){
@@ -618,14 +692,17 @@ function makeAvatar(id){
   if (acts.Push){ acts.Push.setLoop(THREE.LoopOnce); acts.Push.clampWhenFinished = true; }
   const shadow = new THREE.Mesh(new THREE.CircleGeometry(.36, 20), new THREE.MeshBasicMaterial({ color: 0x0b1a33, transparent: true, opacity: .28, depthWrite: false })); shadow.rotation.x = -Math.PI / 2; shadow.position.y = .02; wrapG.add(shadow);
   const bubble = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, depthWrite: false })); bubble.scale.set(.55, .55, 1); bubble.position.y = HGT + .85; bubble.visible = false; bubble.renderOrder = 6; wrapG.add(bubble);
-  const shieldM = new THREE.Mesh(new THREE.SphereGeometry(.8, 20, 14), mats().cyan); shieldM.position.y = .6; shieldM.visible = false; wrapG.add(shieldM);
+  const shieldMat = mats().cyan.clone(); shieldMat.userData = {}; const shieldM = new THREE.Mesh(new THREE.SphereGeometry(.8, 20, 14), shieldMat); shieldM.position.y = .6; shieldM.visible = false; shieldM.renderOrder = 3; wrapG.add(shieldM);
   scene.add(wrapG);
-  return { obj: wrapG, inner, mixer, acts, cur: null, bubble, shieldM, bubbleT: 0 };
+  return { obj: wrapG, inner, mixer, acts, cur: null, bubble, shieldM, bubbleT: 0, shieldA: 0, mixAcc: 0 };
 }
 function playAnim(e, name){ const a = e.av.acts[name]; if (!a || e.av.cur === name) return; const prev = e.av.acts[e.av.cur]; a.reset().setEffectiveWeight(1).fadeIn(.12).play(); if (prev) prev.fadeOut(.12); e.av.cur = name; }
 function emote(e, em, dur = 1.1){ e.av.bubble.material.map = emojiTex(em); e.av.bubble.material.needsUpdate = true; e.av.bubble.visible = true; e.av.bubbleT = dur; }
 const pops = [];
-function pop(pos, txt){ const s = textSprite(txt, '#ff3d77', 'rgba(255,255,255,.95)', 1.4); s.position.copy(pos); s.position.y += 1.6; scene.add(s); pops.push({ s, t: .8 }); }
+const popTex = {};
+function pop(pos, txt){ if (!popTex[txt]){ const t = textSprite(txt, '#ff3d77', 'rgba(255,255,255,.95)', 1.4); t.material.map.userData.shared = true; popTex[txt] = { map: t.material.map, sc: t.scale.clone() }; t.material.dispose(); }
+  if (pops.length > 12){ const o = pops.shift(); scene.remove(o.s); o.s.material.dispose(); }
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: popTex[txt].map, depthWrite: false, transparent: true })); s.scale.copy(popTex[txt].sc); s.renderOrder = 5; s.position.copy(pos); s.position.y += 1.6; scene.add(s); pops.push({ s, t: .8 }); }
 
 /* ================================================================ entities */
 let ents = [], player = null;
@@ -645,14 +722,27 @@ addEventListener('keydown', e => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowL
   if (!keys[e.code]){ if (e.code === 'Space') jumpPressed = true; if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') pushPressed = true; if (e.code === 'Escape' && G_.mode === 'play') goHome(); }
   keys[e.code] = true; });
 addEventListener('keyup', e => { keys[e.code] = false; });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-{ const st = $('stick'), kn = $('knob'); let pid = null, cx = 0, cy = 0;
-  st.addEventListener('pointerdown', e => { pid = e.pointerId; st.setPointerCapture(pid); const r = st.getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; mv(e); });
-  const mv = e => { if (e.pointerId !== pid) return; let dx = e.clientX - cx, dy = e.clientY - cy; const d = Math.hypot(dx, dy), m = 50; if (d > m){ dx *= m / d; dy *= m / d; } kn.style.transform = `translate(${dx}px,${dy}px)`; touchVec.x = dx / m; touchVec.y = -dy / m; };
-  st.addEventListener('pointermove', mv); const up = e => { if (e.pointerId !== pid) return; pid = null; kn.style.transform = ''; touchVec.x = touchVec.y = 0; };
-  st.addEventListener('pointerup', up); st.addEventListener('pointercancel', up);
-  $('bJump').addEventListener('pointerdown', e => { e.preventDefault(); jumpPressed = true; });
-  $('bPush').addEventListener('pointerdown', e => { e.preventDefault(); pushPressed = true; }); }
+let stickPid = null;
+function resetInput(){ for (const k in keys) keys[k] = false; touchVec.x = touchVec.y = 0; jumpPressed = pushPressed = false; stickPid = null; const kn = $('knob'); if (kn) kn.style.transform = ''; }
+addEventListener('blur', resetInput);
+addEventListener('pagehide', resetInput);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ resetInput(); if (G_.mode === 'play' || G_.mode === 'count'){ G_.prevMode = G_.mode; G_.mode = 'settings'; G_.paused = true; updateDailyUI(); showScreen('sSettings'); } Audio.suspend(); }
+  else { last = performance.now(); if (G_.mode !== 'settings') Audio.resume(); }
+});
+{ const st = $('stick'), kn = $('knob'); let cx = 0, cy = 0;
+  const mv = e => { if (e.pointerId !== stickPid) return; let dx = e.clientX - cx, dy = e.clientY - cy; const d = Math.hypot(dx, dy), m = 50; if (d > m){ dx *= m / d; dy *= m / d; } kn.style.transform = `translate(${dx}px,${dy}px)`; touchVec.x = dx / m; touchVec.y = -dy / m; };
+  st.addEventListener('pointerdown', e => { e.preventDefault(); stickPid = e.pointerId; try { st.setPointerCapture(stickPid); } catch(err){} const r = st.getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; mv(e); });
+  st.addEventListener('pointermove', mv);
+  const up = e => { if (e.pointerId !== stickPid) return; stickPid = null; kn.style.transform = ''; touchVec.x = touchVec.y = 0; };
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) st.addEventListener(ev, up);
+  // buttons fire on touch-down (no click delay) and work while the stick is held with the other thumb
+  const btn = (el, fn) => { el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); fn(); el.classList.add('down'); });
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) el.addEventListener(ev, () => el.classList.remove('down')); };
+  btn($('bJump'), () => { jumpPressed = true; });
+  btn($('bPush'), () => { if (player && G_.mode === 'play') doPush(player); });   // push starts immediately on touch
+  $('touch').addEventListener('contextmenu', e => e.preventDefault());
+}
 
 /* ================================================================ physics */
 const EV = { fast: 1, grav: 1, wind: 0, slip: 1 };
@@ -689,15 +779,16 @@ function stepEnt(e, dt, wish, wantJump){
   if (EV.wind) { e.vel.x += n.x * EV.wind * dt; e.vel.z += n.z * EV.wind * dt; }
   if (wantJump) e.jumpBuf = .13; else e.jumpBuf -= dt;
   e.coyote = e.grounded ? .1 : e.coyote - dt;
-  if (e.jumpBuf > 0 && e.coyote > 0 && e.stun <= 0 && !e.finished){ e.vel.y = JUMP_V * (EV.grav < 1 ? .85 : 1); e.grounded = false; e.coyote = 0; e.jumpBuf = 0; e.ground = null; if (!e.isBot) Audio.play('jump', .7); }
+  if (e.jumpBuf > 0 && e.coyote > 0 && e.stun <= 0 && !e.finished){ e.vel.y = JUMP_V * (EV.grav < 1 ? .85 : 1); e.grounded = false; e.coyote = 0; e.jumpBuf = 0; e.ground = null; if (!e.isBot) Audio.play('jump', .7); if (!e.isBot || (player && e.pos.distanceTo(player.pos) < 12)) FX.dust(e.pos.x, e.pos.y, e.pos.z, e.isBot ? 3 : 6); }
   e.vel.y += G0 * EV.grav * dt; if (e.vel.y < -32) e.vel.y = -32;
   // horizontal move with step/wall blocking (try full, then radial-only, then tangential-only)
   const dx = e.vel.x * dt, dz = e.vel.z * dt;
   const tryMove = (mx, mz) => { const nx = e.pos.x + mx, nz = e.pos.z + mz; const na = e.a + wrap(Math.atan2(nz, nx) - e.a), nr = Math.hypot(nx, nz);
     if (!embedded && blockedAt(nx, nz, na, nr, e.pos.y)) return false; if (nr < RC + RAD && nr < e.r) return false; e.pos.x = nx; e.pos.z = nz; e.a = na; e.r = nr; return true; };
   if (!tryMove(dx, dz)){ const dn = dx * n.x + dz * n.z, dtg = dx * t.x + dz * t.z;
-    if (!tryMove(n.x * dn, n.z * dn)) { e.vel.x -= n.x * (e.vel.x * n.x + e.vel.z * n.z); e.vel.z -= n.z * (e.vel.x * n.x + e.vel.z * n.z); }
-    if (!tryMove(t.x * dtg, t.z * dtg)) { const vt = e.vel.x * t.x + e.vel.z * t.z; e.vel.x -= t.x * vt; e.vel.z -= t.z * vt; } }
+    if (!tryMove(n.x * dn, n.z * dn)) { const vn = e.vel.x * n.x + e.vel.z * n.z; e.vel.x -= n.x * vn; e.vel.z -= n.z * vn; e.blockedT = (e.blockedT || 0) + dt; }
+    if (!tryMove(t.x * dtg, t.z * dtg)) { const vt = e.vel.x * t.x + e.vel.z * t.z; e.vel.x -= t.x * vt; e.vel.z -= t.z * vt; e.blockedT = (e.blockedT || 0) + dt; } }
+  else e.blockedT = Math.max(0, (e.blockedT || 0) - dt * 2);
   if (e.r < RC + RAD){ const k = (RC + RAD) / e.r; e.pos.x *= k; e.pos.z *= k; e.r = RC + RAD; }
   // vertical
   const prevY = e.pos.y; e.pos.y += e.vel.y * dt;
@@ -706,13 +797,15 @@ function stepEnt(e, dt, wish, wantJump){
   let landed = false;
   if (sup && e.vel.y <= 0){
     if (wasG && sup.top >= e.pos.y - .45){ e.pos.y = sup.top; e.vel.y = 0; landed = true; }
-    else if (sup.top >= e.pos.y){ e.pos.y = sup.top; e.vel.y = 0; landed = true; if (!wasG && !e.isBot) Audio.play('land', .4); }
+    else if (sup.top >= e.pos.y){ const impact = -e.vel.y; e.pos.y = sup.top; e.vel.y = 0; landed = true; if (!wasG && !e.isBot) Audio.play('land', .4);
+      if (!wasG && impact > 7 && (!e.isBot || (player && e.pos.distanceTo(player.pos) < 12))){ FX.dust(e.pos.x, e.pos.y, e.pos.z, e.isBot ? 3 : 7); if (!e.isBot) FX.ring(e.pos.x, e.pos.y + .04, e.pos.z); } }
   }
   if (landed){ e.grounded = true; e.ground = sup; e.groundPad = sup.pad || null; if (sup.k) e.a += sup.k * TAU; e.lastGroundY = e.pos.y;
     if (sup.plaza) e.a = wrap(e.a) < 0 && e.a < .5 ? e.a : e.a; }
   else { e.grounded = false; e.groundPad = null; }
   if (e.grounded && !sup.plaza) e.maxA = Math.max(e.maxA, e.a);
-  e.stun -= dt; e.pushCd -= dt; e.pushT -= dt; e.slow -= dt; e.boost -= dt;
+  e.stun -= dt; e.pushCd -= dt; e.pushT -= dt; e.slow -= dt; e.boost -= dt; e.invul = (e.invul || 0) - dt; e.hitT = (e.hitT || 0) - dt; e.playerPushCd = (e.playerPushCd || 0) - dt;
+  if (e.grounded) e.noFallCheck = false;
   // anti-stuck: trying to move but not going anywhere -> pop back to the middle of the road
   const tried = Math.hypot(wish.x, wish.z) > .5 && e.stun <= 0 && !e.finished;
   const moved = Math.hypot(e.pos.x - (e._px ?? e.pos.x), e.pos.z - (e._pz ?? e.pos.z));
@@ -720,17 +813,20 @@ function stepEnt(e, dt, wish, wantJump){
   if (tried && moved < .004) e.stuckT = (e.stuckT || 0) + dt; else e.stuckT = 0;
   if (e.stuckT > 2.2){ e.stuckT = 0; const na = e.a + .3 / RMID; const tp = roadTop(na, RMID); if (tp){ setPolar(e, na, RMID, tp.top + .05); e.vel.set(0, 0, 0); e.grounded = true; if (e === player) toast('끼임 탈출! 🙌', 1); } }
 }
-function knock(e, vx, vy, vz, emo = '😵'){
-  if (e.finished) return;
+function knock(e, vx, vy, vz, emo = '😵', kind = 'hit'){
+  if (e.finished || e.invul > 0) return;
   if (e.shield > 0){ e.shield = 0; e.vel.x = vx * .25; e.vel.z = vz * .25; if (e === player){ Audio.play('shield'); toast('🛡️ 실드로 막았다!'); } return; }
-  e.vel.set(vx, vy, vz); e.grounded = false; e.ground = null; e.stun = .65; emote(e, emo);
-  if (e === player){ Audio.play('hit'); shake = .4; } else if (player && e.pos.distanceTo(player.pos) < 8) Audio.play('hit', .3);
+  e.vel.set(vx, vy, vz); e.grounded = false; e.ground = null; e.stun = .65; e.hitT = .35; emote(e, emo);
+  if (e === player || (player && e.pos.distanceTo(player.pos) < 14)) FX.stars(e.pos.x, e.pos.y + HGT, e.pos.z, e === player ? 10 : 6);
+  if (kind !== 'none'){ if (e === player){ Audio.play(kind); } else if (player && e.pos.distanceTo(player.pos) < 8) Audio.play(kind, .3); }
+  if (e === player) shake = Math.max(shake, .28);
 }
 function doPush(e){
   if (e.pushCd > 0 || e.stun > 0 || e.finished) return; e.pushCd = .9; e.pushT = .45;
   const fx = Math.sin(e.face), fz = Math.cos(e.face); let hit = false;
   for (const o of ents){ if (o === e) continue; const dx = o.pos.x - e.pos.x, dz = o.pos.z - e.pos.z, dy = o.pos.y - e.pos.y, d = Math.hypot(dx, dz);
-    if (d < 1.4 && Math.abs(dy) < 1 && (dx * fx + dz * fz) / (d || 1) > .1){ knock(o, dx / d * 8 + fx * 2, 5.5, dz / d * 8 + fz * 2, '😡'); hit = true; pop(o.pos, '퍽!'); } }
+    if (d < 1.4 && Math.abs(dy) < 1 && (dx * fx + dz * fz) / (d || 1) > .1){ if (o.invul > 0) continue; knock(o, dx / d * 8 + fx * 2, 5.5, dz / d * 8 + fz * 2, '😡', 'slap'); hit = true; pop(o.pos, '퍽!'); } }
+  if (e === player || (player && e.pos.distanceTo(player.pos) < 12)) FX.wave(e.pos.x + fx * .7, e.pos.y + .55, e.pos.z + fz * .7, e.face);
   if (e === player || (player && e.pos.distanceTo(player.pos) < 7)) Audio.play('push', e === player ? 1 : .4);
   if (hit && e.isBot) emote(e, '😆');
 }
@@ -739,19 +835,20 @@ function separate(){ for (let i = 0; i < ents.length; i++) for (let j = i + 1; j
 function updateObstacles(dt, T){
   for (const o of world.obs){
     if (o.type === 'sweeper'){ o.ang += o.w * dt * EV.fast; o.arm.rotation.y = -o.ang; }
-    else if (o.type === 'hammer'){ o.prevTh = o.th; o.th = Math.sin(T * o.spd * EV.fast + o.ph) * o.amp; o.swing.rotation.z = 0; o.swing.children.forEach(() => {}); o.swing.rotation.set(0, 0, 0); o.swing.lookAt(o.piv.clone().add(o.t)); o.swing.rotateZ(-o.th); }
+    else if (o.type === 'hammer'){ o.prevTh = o.th; o.th = Math.sin(T * o.spd * EV.fast + o.ph) * o.amp; if (!o.baseQ){ o.swing.lookAt(o.piv.clone().add(o.t)); o.baseQ = o.swing.quaternion.clone(); } o.swing.quaternion.copy(o.baseQ); o.swing.rotateZ(-o.th); }
     else if (o.type === 'wall'){ o.prevRc = o.rc; o.rc = RMID + Math.sin(T * o.spd * EV.fast + o.ph) * (R1 - R0 - 2.8) / 2; o.mesh.position.copy(P(o.a, o.rc, o.y)); o.mesh.rotation.y = -o.a; }
     else if (o.type === 'dome'){ o.squash = Math.max(0, o.squash - dt * 3); o.mesh.scale.set(1 + o.squash * .15, 1 - o.squash * .25, 1 + o.squash * .15); }
     else if (o.type === 'shield'){ o.cd -= dt; o.mesh.visible = o.cd <= 0; o.mesh.position.y = o.y + 1.1 + Math.sin(T * 3) * .15; }
   }
   for (const p of world.pads) padPos(p, T);
   // rolling barrels
-  for (const s of world.spawners){ s.t -= dt * EV.fast; if (s.t <= 0){ s.t = s.every; const r = lerp(s.seg.r0 + 1, s.seg.r1 - 1, Math.random()); const m = new THREE.Mesh(new THREE.CylinderGeometry(.62, .62, 1.9, 20), mats().barrel); m.castShadow = true; world.group.add(m); world.barrels.push({ seg: s.seg, a: s.seg.a1 - .02, r, m, spd: s.speed, rot: 0 }); } }
+  for (const s of world.spawners){ s.t -= dt * EV.fast; if (s.t <= 0){ s.t = s.every; const r = lerp(s.seg.r0 + 1, s.seg.r1 - 1, Math.random()); const m = new THREE.Mesh(mats().barrelGeo, mats().barrel); m.castShadow = true; world.group.add(m); world.barrels.push({ seg: s.seg, a: s.seg.a1 - .02, r, m, spd: s.speed, rot: 0 }); } }
   for (let i = world.barrels.length - 1; i >= 0; i--){ const b = world.barrels[i]; b.a -= b.spd * EV.fast / b.r * dt; b.rot += b.spd * EV.fast * dt / .62;
-    if (b.a < b.seg.a0){ world.group.remove(b.m); b.m.geometry.dispose(); world.barrels.splice(i, 1); continue; }
+    if (b.a < b.seg.a0){ world.group.remove(b.m); world.barrels.splice(i, 1); continue; }
     const y = lerp(b.seg.y0, b.seg.y1, (b.a - b.seg.a0) / (b.seg.a1 - b.seg.a0)) + .62; b.m.position.copy(P(b.a, b.r, y)); b.y = y;
     b.m.rotation.set(0, -b.a, Math.PI / 2); b.m.rotateY(b.rot); }
 }
+const _tv = new THREE.Vector3();
 function obstacleHits(e){
   const cy = e.pos.y + HGT * .5;
   for (const o of world.obs){
@@ -760,22 +857,24 @@ function obstacleHits(e){
       const d = Math.hypot(dx, dz); if (d < .45 + RAD && e.pos.y < o.y + 2){ const k = (.45 + RAD) / (d || 1); e.pos.x = o.x + dx * k; e.pos.z = o.z + dz * k; }
       if (e.pos.y < o.bh + .2 && e.pos.y + HGT > o.bh - .2 && e.stun <= 0){
         for (const sgn of [1, -1]){ const ux = Math.cos(o.ang) * sgn, uz = Math.sin(o.ang) * sgn; const p = dx * ux + dz * uz; if (p < 0 || p > o.len) continue; const px = dx - ux * p, pz = dz - uz * p;
-          if (Math.hypot(px, pz) < RAD + .2){ const s = Math.sign(o.w); knock(e, -uz * s * 7 * sgn, 4.5, ux * s * 7 * sgn); break; } } }
+          if (Math.hypot(px, pz) < RAD + .2){ const s = Math.sign(o.w); knock(e, -uz * s * 7 * sgn, 4.5, ux * s * 7 * sgn, '😵', 'bonk'); break; } } }
     } else if (o.type === 'dome'){
       const dx = e.pos.x - o.x, dz = e.pos.z - o.z, d = Math.hypot(dx, dz);
       if (d < o.rad + RAD && e.pos.y < o.y + 1.5){ const nx = dx / (d || 1), nz = dz / (d || 1); e.pos.x = o.x + nx * (o.rad + RAD + .01); e.pos.z = o.z + nz * (o.rad + RAD + .01);
-        if (e.stun <= 0){ knock(e, nx * 10, 5, nz * 10, '😵‍💫'); o.squash = 1; if (e === player || (player && e.pos.distanceTo(player.pos) < 7)) Audio.play('bounce', e === player ? 1 : .4); } }
+        if (e.stun <= 0){ knock(e, nx * 10, 5, nz * 10, '😵‍💫', 'none'); o.squash = 1; if (e === player || (player && e.pos.distanceTo(player.pos) < 7)) Audio.play('bounce', e === player ? 1 : .4); } }
       else if (d < o.rad && e.pos.y >= o.y + 1.3 && e.vel.y <= 0 && e.pos.y < o.y + 1.9){ e.vel.y = 12; o.squash = 1; if (e === player) Audio.play('bounce'); }
     } else if (o.type === 'hammer'){
-      const head = o.piv.clone().addScaledVector(o.n, Math.sin(o.th) * o.len); head.y -= Math.cos(o.th) * o.len;
-      const rel = new THREE.Vector3(e.pos.x - head.x, cy - head.y, e.pos.z - head.z); const along = clamp(rel.dot(o.t), -.95, .95); rel.addScaledVector(o.t, -along);
-      if (rel.length() < .85 + RAD + .1 && e.stun <= 0){ const dir = Math.sign(o.th - (o.prevTh ?? o.th)) || Math.sign(rel.dot(o.n)) || 1; knock(e, o.n.x * dir * 9, 6, o.n.z * dir * 9, '🤯'); }
+      const hx = o.piv.x + o.n.x * Math.sin(o.th) * o.len, hy = o.piv.y - Math.cos(o.th) * o.len, hz = o.piv.z + o.n.z * Math.sin(o.th) * o.len;
+      const rel = _tv.set(e.pos.x - hx, cy - hy, e.pos.z - hz); const along = clamp(rel.dot(o.t), -.95, .95); rel.addScaledVector(o.t, -along);
+      if (rel.length() < .85 + RAD + .1 && e.stun <= 0){ const dir = Math.sign(o.th - (o.prevTh ?? o.th)) || Math.sign(rel.dot(o.n)) || 1; knock(e, o.n.x * dir * 9, 6, o.n.z * dir * 9, '🤯', 'thud'); }
     } else if (o.type === 'wall'){
       if (e.pos.y > o.y + 1.7 || e.pos.y + HGT < o.y) continue;
       const ds = wrap(e.a - o.a) * e.r, dr = e.r - o.rc; if (Math.abs(ds) > o.dep + RAD || Math.abs(dr) > o.half + RAD) continue;
       const penS = o.dep + RAD - Math.abs(ds), penR = o.half + RAD - Math.abs(dr);
       if (penS < penR){ const na = o.a + Math.sign(ds || -1) * (o.dep + RAD + .01) / e.r; setPolar(e, na, e.r, e.pos.y); }
-      else { const nr = o.rc + Math.sign(dr || 1) * (o.half + RAD + .01); setPolar(e, e.a, nr, e.pos.y); const wv = (o.rc - o.prevRc) / Math.max(1e-4, 1 / 60); if (Math.sign(wv) === Math.sign(dr) && Math.abs(wv) > 1 && e.stun <= 0) knock(e, Math.cos(e.a) * Math.sign(dr) * 9, 4, Math.sin(e.a) * Math.sign(dr) * 9, '😱'); }
+      else { const nr = o.rc + Math.sign(dr || 1) * (o.half + RAD + .01);
+        if (nr < RC + RAD + .05){ const na = o.a + Math.sign(ds || 1) * (o.dep + RAD + .02) / e.r; setPolar(e, na, Math.max(e.r, RC + RAD + .05), e.pos.y); continue; }
+        setPolar(e, e.a, nr, e.pos.y); const wv = (o.rc - o.prevRc) / Math.max(1e-4, 1 / 60); if (Math.sign(wv) === Math.sign(dr) && Math.abs(wv) > 1 && e.stun <= 0) knock(e, Math.cos(e.a) * Math.sign(dr) * 9, 4, Math.sin(e.a) * Math.sign(dr) * 9, '😱', 'thud'); }
     } else if (o.type === 'slime' || o.type === 'pad'){
       if (!e.grounded || Math.abs(e.pos.y - o.y) > .5) continue; const dx = e.pos.x - o.x, dz = e.pos.z - o.z; if (dx * dx + dz * dz > o.rad * o.rad) continue;
       if (o.type === 'slime'){ if (e.slow <= 0 && e === player) toast('끈적끈적… 🟩', .8); e.slow = .35; }
@@ -785,7 +884,7 @@ function obstacleHits(e){
     }
   }
   for (const b of world.barrels){ if (Math.abs(cy - b.y) > 1.2) continue; const ds = wrap(e.a - b.a) * e.r, dr = e.r - b.r;
-    if (Math.abs(ds) < .62 + RAD && Math.abs(dr) < .95 + RAD && e.stun <= 0){ const t = new THREE.Vector3(-Math.sin(e.a), 0, Math.cos(e.a)); knock(e, -t.x * 8, 7, -t.z * 8, '😵'); } }
+    if (Math.abs(ds) < .62 + RAD && Math.abs(dr) < .95 + RAD && e.stun <= 0){ const t = new THREE.Vector3(-Math.sin(e.a), 0, Math.cos(e.a)); knock(e, -t.x * 8, 7, -t.z * 8, '😵', 'thunk'); } }
 }
 
 /* ================================================================ bots */
@@ -807,18 +906,22 @@ function botThink(e, dt){
     if (o.type === 'hammer' && ahead > .2 && ahead < 2.4 && Math.abs(RMID + Math.sin(o.th) * o.len - e.r) < 2.4 && e.skill > .45) waitHere = true;
   }
   for (const b of world.barrels){ const ahead = wrap(b.a - e.a) * e.r; if (ahead > 0 && ahead < 1.6 + e.skill * .4 && Math.abs(b.r - e.r) < 1.4 && Math.abs(b.y - e.pos.y) < 2) jumpFor = true; }
+  if ((e.blockedT || 0) > .5){ e.blockedT = 0; e.lane = e.r > RMID ? R0 + 1.2 : R1 - 1.2; e.laneT = 1.8; jumpFor = true; }   // path blocked -> try the other side
   const dr = clamp((e.lane - e.r) * .9, -.8, .8);
   const fw = waitHere ? 0 : .82 + e.skill * .18; wish.x = t.x * fw + n.x * dr; wish.z = t.z * fw + n.z * dr;
   // terrain ahead: step or gap
   if (e.grounded){ const look = (1.1 + e.skill * .5) / e.r; const ahead = roadTop(e.a + look, e.r); const padAhead = world.pads.some(p => Math.hypot(p.x - (Math.cos(e.a + look * 2) * e.r), p.z - (Math.sin(e.a + look * 2) * e.r)) < p.rad);
     if (!ahead && !padAhead) jumpFor = true; else if (ahead && ahead.top > e.pos.y + STEP_UP) jumpFor = true;
     if (seg && seg.kind === 'gap') { const p = world.pads.find(p => wrap(p.a - e.a) > .05 && wrap(p.a - e.a) * e.r < 5); e.lane = p ? p.r : RMID; } }
-  e.think -= dt; if (jumpFor && e.grounded && e.think <= 0){ if (Math.random() < .5 + e.skill * .5) jump = true; e.think = .2 + Math.random() * .25; }
+  e.think -= dt; if (jumpFor && e.grounded && e.think <= 0){ if (Math.random() < .5 + e.skill * .5) jump = true; e.think = .2 + Math.random() * .25;
+    if (jump){ if (e.maxA <= (e.lastJumpProg ?? -1) + .004) e.jumpSpam = (e.jumpSpam || 0) + 1; else e.jumpSpam = 0; e.lastJumpProg = e.maxA;
+      if (e.jumpSpam >= 3){ e.jumpSpam = 0; jump = false; e.think = 1; e.lane = e.r > RMID ? R0 + 1.2 : R1 - 1.2; e.laneT = 2; } } }
   // mischief: push neighbours, the player especially
-  if (e.pushCd <= 0){ for (const o of ents){ if (o === e) continue; const d = o.pos.distanceTo(e.pos); if (G_.t > 4 && d < 1.25 && Math.random() < dt * (o === player ? 1.0 : .1)){ e.face = Math.atan2(o.pos.x - e.pos.x, o.pos.z - e.pos.z); doPush(e); break; } } }
+  if (e.pushCd <= 0){ for (const o of ents){ if (o === e || o.invul > 0) continue; const d = o.pos.distanceTo(e.pos); const rate = o === player ? (e.playerPushCd > 0 ? 0 : .25 + .5 * e.skill) : .1;
+    if (G_.t > 4 && d < 1.25 && Math.random() < dt * rate){ e.face = Math.atan2(o.pos.x - e.pos.x, o.pos.z - e.pos.z); doPush(e); if (o === player) e.playerPushCd = 3.5; break; } } }
   // unstick
   if (e.maxA > e.lastProg + .05){ e.lastProg = e.maxA; e.stuck = 0; } else e.stuck += dt;
-  if (e.stuck > 10){ e.stuck = 0; const a = e.maxA + .2 / e.r; const tp = roadTop(a, RMID); if (tp){ setPolar(e, a, RMID, tp.top + .05); e.vel.set(0, 0, 0); } }
+  if (e.stuck > 12){ e.stuck = 0; const a = e.maxA + .2 / e.r; const tp = roadTop(a, RMID); if (tp){ setPolar(e, a, RMID, tp.top + .05); e.vel.set(0, 0, 0); } }
   return { wish, jump };
 }
 
@@ -827,8 +930,10 @@ const G_ = { mode: 'menu', type: 'daily', charId: store.get('labtower-char', 0),
 let shake = 0;
 /* ================================================================ online ranking (Supabase – no login needed) */
 const CFG = window.PANGSDAK_CONFIG || {};
+const SHARE_URL = 'https://shangho90-sudo.github.io/pangsdak-marathon/';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 const Rank = {
-  ready: false, note: '', uid: null, key: null,
+  ready: false, note: '', uid: null, key: null, sent: new Set(store.get('pangsdak-sent', [])),
   hdr(){ const h = { apikey: CFG.anonKey, 'Content-Type': 'application/json' }; if (CFG.anonKey.startsWith('eyJ')) h.Authorization = 'Bearer ' + CFG.anonKey; return h; },
   async init(){
     if (!CFG.url || !CFG.anonKey){ this.note = '랭킹 서버가 아직 설정되지 않았어요 (config.js).'; return; }
@@ -838,23 +943,51 @@ const Rank = {
     this.key = k;
     try { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(k)); this.uid = Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('').slice(0, 16); } catch(e){ this.uid = null; }
     this.ready = true; updateDailyUI();
+    this.flush();   // runs that could not be sent last time
+  },
+  // POST with a timeout; network errors and 5xx are retried with backoff, 4xx (rejected by the server) are not
+  async rpc(fn, body, tries = 3){
+    let last = null;
+    for (let i = 0; i < tries; i++){
+      try { const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 10000);
+        const r = await fetch(CFG.url.replace(/\/$/, '') + '/rest/v1/rpc/' + fn, { method: 'POST', headers: this.hdr(), body: JSON.stringify(body), signal: ctl.signal }); clearTimeout(to);
+        if (r.ok) return { ok: true, data: await r.json() };
+        last = { ok: false, status: r.status, text: await r.text() }; if (r.status < 500) return last;
+      } catch(e){ last = { ok: false, status: 0, text: String(e) }; }
+      if (i < tries - 1) await sleep(1000 * 3 ** i);
+    }
+    return last;
+  },
+  pending(){ return store.get('pangsdak-pending', []); },
+  setPending(list){ store.set('pangsdak-pending', list.slice(-5)); },
+  async send(payload){
+    if (this.sent.has(payload.p_run)) return { ok: true, dup: true };      // never send the same run twice
+    let res = await this.rpc('submit_score_v2', payload);
+    if (!res.ok && res.status === 404){ const { p_run, p_time, ...v1 } = payload; res = await this.rpc('submit_score', v1); }   // server without v2 yet
+    if (res.ok || (res.status >= 400 && res.status < 500)){
+      this.sent.add(payload.p_run); store.set('pangsdak-sent', [...this.sent].slice(-30));
+      this.setPending(this.pending().filter(p => p.p_run !== payload.p_run));
+    }
+    return res;
   },
   async submit(run){
     if (!this.ready) return { ok: false, why: this.note };
-    try {
-      const r = await fetch(CFG.url.replace(/\/$/, '') + '/rest/v1/rpc/submit_score', { method: 'POST', headers: this.hdr(),
-        body: JSON.stringify({ p_key: this.key, p_nick: run.nick, p_char: run.char, p_score: Math.round(run.score), p_rank: run.rank, p_fin: !!run.fin, p_day: todayKey() }) });
-      if (!r.ok) throw new Error(await r.text());
-      const d = await r.json(); const prevDay = localBest().prevSubmitted || 0;
-      return { ok: true, doc: { dayBest: d.day_best, best: d.best }, newBest: run.score >= d.day_best };
-    } catch(e){ return { ok: false, why: '랭킹 서버에 저장하지 못했어요. 잠시 후 다시 시도해 주세요.' }; }
+    const payload = { p_key: this.key, p_nick: run.nick, p_char: run.char, p_score: Math.round(run.score), p_rank: run.rank, p_fin: !!run.fin, p_day: todayKey(), p_run: run.runId, p_time: Math.round(run.time) };
+    if (!this.pending().some(p => p.p_run === payload.p_run)) this.setPending([...this.pending(), payload]);
+    const res = await this.send(payload);
+    if (res.ok && res.dup) return { ok: true, dup: true, doc: null };
+    if (!res.ok){
+      if (res.status >= 400 && res.status < 500) return { ok: false, final: true, why: '기록이 서버 검증을 통과하지 못해 저장되지 않았어요.' };
+      return { ok: false, why: '랭킹 서버에 연결하지 못했어요. 다시 시도를 눌러 주세요. (다음 접속 때도 자동으로 다시 보내요)' };
+    }
+    const d = res.data; return { ok: true, doc: { dayBest: d.day_best, best: d.best }, newBest: run.score >= d.day_best };
   },
+  async flush(){ for (const p of this.pending()) await this.send(p); },
   async board(kind){
     if (!CFG.url || !CFG.anonKey) return null;
-    try { const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 10000);
-      const r = await fetch(CFG.url.replace(/\/$/, '') + '/rest/v1/rpc/get_leaderboard', { method: 'POST', headers: this.hdr(), signal: ctl.signal, body: JSON.stringify({ p_kind: kind === 'today' ? 'today' : 'all', p_day: todayKey() }) }); clearTimeout(to); if (!r.ok) return null;
-      return (await r.json()).map(x => ({ id: x.pid, nick: x.nick, char: x.char_id, best: x.best, bestRank: x.best_rank, dayBest: x.day_best, dayFin: x.day_fin }));
-    } catch(e){ return null; }
+    const res = await this.rpc('get_leaderboard', { p_kind: kind === 'today' ? 'today' : 'all', p_day: todayKey() }, 2);
+    if (!res.ok) return null;
+    return res.data.map(x => ({ id: x.pid, nick: x.nick, char: x.char_id, best: x.best, bestRank: x.best_rank, dayBest: x.day_best, dayFin: x.day_fin }));
   }
 };
 function localBest(){ return Object.assign({ best: 0 }, store.get('pangsdak-day-' + todayKey(), {})); }
@@ -871,28 +1004,60 @@ let toastT = 0; function toast(t, dur = 1.2){ const el = $('toast'); el.textCont
 const progress = e => e.finished ? 1e6 - e.finishT : e.a + (e.grounded ? 0 : -.01);
 function scoreOf(e){ return Math.max(0, Math.floor(e.maxA * RMID)); }
 
+let starting = false;
+function isInside(o, root){ for (let q = o; q; q = q.parent) if (q === root) return true; return false; }
+function disposeAvatar(e){
+  try { e.av.mixer.stopAllAction(); e.av.mixer.uncacheRoot(e.av.mixer.getRoot()); } catch(err){}
+  scene.remove(e.av.obj);
+  // only the per-avatar extras belong to us; the cloned model shares geometry/materials with the model cache
+  e.av.obj.traverse(o => { if (!isInside(o, e.av.inner)) disposeOwned(o); else if (o.isSkinnedMesh && o.skeleton) o.skeleton.dispose(); });   // bone texture is per clone
+}
 async function startGame(type){
-  Audio.resume(); Audio.play('click'); G_.type = type;
-  const seed = type === 'daily' ? hashStr('pangsdak' + todayKey()) : (Math.random() * 1e9) | 0;
-  showScreen('sLoad'); $('loadMsg').textContent = '코스를 만드는 중…'; const bar = $('loadbar').firstElementChild; bar.style.width = '5%';
-  await new Promise(r => setTimeout(r, 30));
-  buildCourse(seed);
-  const pool = []; const others = CHARS.map(c => c.id).filter(i => i !== G_.charId); for (let i = 0; i < N_RACERS - 1; i++) pool.push(others[i % others.length]);
-  const need = [...new Set([G_.charId, ...pool])]; let done = 0;
-  await Promise.all(need.map(id => loadChar(id).then(() => { done++; bar.style.width = (5 + done / need.length * 95) + '%'; })));
-  for (const e of ents) scene.remove(e.av.obj); ents = [];
-  player = makeEnt(G_.charId, false, '나', 0); ents.push(player);
-  { const seen = {}; pool.forEach((id, k) => { seen[id] = (seen[id] || 0) + 1; ents.push(makeEnt(id, true, CHARS[id].name + (seen[id] > 1 ? ' ' + seen[id] : ''), k + 1)); }); }
-  // starting grid: 4 rows x 4 across the road
-  ents.forEach((e, i) => { const row = Math.floor(i / 4), col = i % 4; const a = .3 - row * .14 / 1, r = lerp(R0 + 1, R1 - 1, (col + .5) / 4); const tp = roadTop(Math.max(.02, a), r); setPolar(e, Math.max(.02, a), r, tp ? tp.top : 0); e.face = Math.atan2(-Math.sin(e.a), Math.cos(e.a)); e.lastGroundY = e.pos.y; e.safe = { a: e.a, r: e.r, y: e.pos.y }; });
-  // shuffle the player into a middle slot
-  { const k = 6 + Math.floor(Math.random() * 4); const s = ents[k]; const pa = player.a, pr = player.r, py = player.pos.y; setPolar(player, s.a, s.r, s.pos.y); setPolar(s, pa, pr, py); player.safe = { a: player.a, r: player.r, y: player.pos.y }; }
-  camA = player.a - .6; camY = player.pos.y + 3; camYaw = Math.atan2(-Math.sin(player.a), Math.cos(player.a)); camDist = 6;
-  Object.assign(G_, { mode: 'count', t: 0, revives: 1, score: 0, paused: true, stage: 0, finishOrder: [], evT: 35 + Math.random() * 10, evLeft: 0, ev: null, count: 3.2 });
-  Object.assign(EV, { fast: 1, grav: 1, wind: 0, slip: 1 });
-  $('hud').classList.remove('hidden'); $('touch').classList.remove('hidden'); showScreen(null);
-  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  Audio.startBgm(); updateStageTag(true);
+  if (starting) return;                       // ignore double taps while a race is being built
+  starting = true;
+  try {
+    Audio.resume(); Audio.play('click'); G_.type = type; G_.runId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36).slice(2));
+    $('loadErr').classList.add('hidden');
+    const seed = type === 'daily' ? hashStr('pangsdak' + todayKey()) : (Math.random() * 1e9) | 0;
+    showScreen('sLoad'); $('loadMsg').textContent = '코스를 만드는 중…'; const bar = $('loadbar').firstElementChild; bar.style.width = '5%';
+    await new Promise(r => setTimeout(r, 30));
+    G_.mode = 'loading'; G_.paused = true;
+    for (const e of ents) disposeAvatar(e); ents = []; player = null;
+    buildCourse(seed);
+    let pool = []; const others = CHARS.map(c => c.id).filter(i => i !== G_.charId); for (let i = 0; i < N_RACERS - 1; i++) pool.push(others[i % others.length]);
+    const need = [...new Set([G_.charId, ...pool])]; let done = 0;
+    $('loadMsg').textContent = `캐릭터 불러오는 중… (0/${need.length})`;
+    await Promise.allSettled(need.map(id => loadChar(id).then(() => { done++; bar.style.width = (5 + done / need.length * 95) + '%'; $('loadMsg').textContent = `캐릭터 불러오는 중… ${CHARS[id].name} (${done}/${need.length})`; })));
+    const okIds = need.filter(id => charCache[id]);
+    if (!okIds.length){
+      $('loadMsg').textContent = '캐릭터를 불러오지 못했어요.'; $('loadErrMsg').textContent = '네트워크 상태를 확인한 뒤 다시 시도해 주세요.';
+      $('loadErr').classList.remove('hidden'); G_.mode = 'menu'; return;
+    }
+    // a model that failed is replaced by one that loaded (same rig, animations and collider)
+    const sub = id => charCache[id] ? id : okIds[id % okIds.length];
+    const myId = sub(G_.charId); if (myId !== G_.charId) setTimeout(() => toast(`${CHARS[G_.charId].name} 모델 대신 ${CHARS[myId].name}(으)로 달려요`, 2.4), 3600);
+    pool = pool.map(sub);
+    player = makeEnt(myId, false, '나', 0); ents.push(player);
+    { const seen = {}; pool.forEach((id, k) => { seen[id] = (seen[id] || 0) + 1; ents.push(makeEnt(id, true, CHARS[id].name + (seen[id] > 1 ? ' ' + seen[id] : ''), k + 1)); }); }
+    // AI difficulty mix: 5 easy, 6 normal, 4 hard
+    { const tiers = []; for (let i = 0; i < 5; i++) tiers.push(.45 + Math.random() * .13); for (let i = 0; i < 6; i++) tiers.push(.6 + Math.random() * .18); for (let i = 0; i < 4; i++) tiers.push(.8 + Math.random() * .15);
+      for (let i = tiers.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [tiers[i], tiers[j]] = [tiers[j], tiers[i]]; }
+      ents.filter(e => e.isBot).forEach((e, i) => e.skill = tiers[i % tiers.length]); }
+    // starting grid: 4 rows x 4 across the road
+    ents.forEach((e, i) => { const row = Math.floor(i / 4), col = i % 4; const a = .3 - row * .14 / 1, r = lerp(R0 + 1, R1 - 1, (col + .5) / 4); const tp = roadTop(Math.max(.02, a), r); setPolar(e, Math.max(.02, a), r, tp ? tp.top : 0); e.face = Math.atan2(-Math.sin(e.a), Math.cos(e.a)); e.lastGroundY = e.pos.y; e.safe = { a: e.a, r: e.r, y: e.pos.y }; });
+    // shuffle the player into a middle slot
+    { const k = 6 + Math.floor(Math.random() * 4); const s = ents[k]; const pa = player.a, pr = player.r, py = player.pos.y; setPolar(player, s.a, s.r, s.pos.y); setPolar(s, pa, pr, py); player.safe = { a: player.a, r: player.r, y: player.pos.y }; }
+    camA = player.a - .6; camY = player.pos.y + 3; camYaw = Math.atan2(-Math.sin(player.a), Math.cos(player.a)); camDist = 6; camDir = null; camFocusY = null;
+    Object.assign(G_, { mode: 'count', t: 0, revives: 1, score: 0, paused: true, stage: 0, finishOrder: [], evT: 35 + Math.random() * 10, evLeft: 0, ev: null, count: 3.2 });
+    Object.assign(EV, { fast: 1, grav: 1, wind: 0, slip: 1 });
+    resetInput();
+    $('hud').classList.remove('hidden'); $('touch').classList.remove('hidden'); $('event').classList.remove('show'); showScreen(null);
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    Audio.startBgm(); updateStageTag(true); Perf.reset();
+  } catch(err){
+    console.error(err); $('loadMsg').textContent = '게임을 준비하다 문제가 생겼어요.'; $('loadErrMsg').textContent = String(err && err.message || err).slice(0, 120);
+    $('loadErr').classList.remove('hidden'); G_.mode = 'menu';
+  } finally { starting = false; }
 }
 function updateStageTag(force){ const st = stageAtA(player.a); if (st !== G_.stage || force){ if (!force && st > G_.stage){ toast(`STAGE ${st + 1} · ${STAGES[st].name}!`, 1.8); Audio.play('checkpoint'); } G_.stage = Math.max(G_.stage, st); $('stageTag').innerHTML = `🏁 STAGE <span class="n">${G_.stage + 1}</span><span class="sn"> · ${STAGES[G_.stage].name}</span>`; } }
 function rankOf(e){ const sorted = ents.slice().sort((x, y) => progress(y) - progress(x)); return sorted.indexOf(e) + 1; }
@@ -902,29 +1067,59 @@ function endGame(finished){
   const rank = finished ? player.finishRank : rankOf(player), time = G_.t;
   const prog = clamp(player.maxA / world.finishA, 0, 1);
   const score = scoreOf(player) + (finished ? 1000 + (N_RACERS - rank) * 60 + Math.max(0, Math.round((TIME_LIMIT - time) * 3)) : 0);
-  G_.score = score;
-  $('resBoard').textContent = '';
+  G_.score = score; G_.lastRunFin = finished;
+  $('resBoard').textContent = ''; $('resRetry').classList.add('hidden');
   if (G_.type === 'daily'){ const lb = localBest(); if (score > lb.best){ lb.best = score; store.set('pangsdak-day-' + todayKey(), lb); }
     $('resBoard').textContent = Rank.ready ? '랭킹에 기록 중…' : (Rank.note || '');
-    Rank.submit({ nick: nick(), char: G_.charId, score, rank, fin: finished }).then(async res => {
-      if (!res.ok){ $('resBoard').textContent = res.why || '랭킹 저장 실패'; return; }
-      const list = await Rank.board('today'); const pos = list ? list.findIndex(r => r.id === Rank.uid) + 1 : 0;
-      $('resBoard').textContent = (res.newBest ? '🎉 오늘 최고 기록 갱신! ' : `오늘 내 최고 ${res.doc.dayBest.toLocaleString()}점 · `) + (pos ? `오늘의 랭킹 ${pos}위` : ''); }); }
+    G_.lastRun = { nick: nick(), char: player.id, score, rank, fin: finished, runId: G_.runId, time };
+    submitRun(); }
   else { const list = store.get('pangsdak-practice', []); list.push({ score, rank, prog: Math.round(prog * 100), time: Math.round(time), char: G_.charId, date: todayKey(), fin: finished }); list.sort((a, b) => b.score - a.score); store.set('pangsdak-practice', list.slice(0, 10)); }
   $('resTitle').textContent = finished ? (rank === 1 ? '🏆 1등으로 정상 정복!' : `🎉 ${rank}등으로 완주!`) : '⏰ 시간 종료!';
   $('resSub').textContent = finished ? '빙글빙글 탑을 끝까지 올랐어요. 혈압은 괜찮나요?' : `${Math.round(prog * 100)}%까지 올라갔어요. 한 판 더 가 볼까요?`;
-  $('resRank').textContent = rank + '위'; $('resScore').textContent = score.toLocaleString(); $('resProg').textContent = Math.round(prog * 100) + '%'; $('resTime').textContent = Math.round(time) + 's';
+  $('resRank').textContent = rank + '위'; $('resScore').textContent = score.toLocaleString(); for (const id of ['resRank', 'resScore']){ const el = $(id); el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); } $('resProg').textContent = Math.round(prog * 100) + '%'; $('resTime').textContent = Math.round(time) + 's';
   $('shareInfo').textContent = '';
   Audio.stopBgm(); Audio.play(finished ? 'goal' : 'fall', finished ? 1 : .5);
   setTimeout(() => showScreen('sResult'), finished ? 1800 : 300);
 }
+async function submitRun(){
+  const run = G_.lastRun; if (!run) return; $('resRetry').classList.add('hidden');
+  if (!Rank.ready){ $('resBoard').textContent = Rank.note || ''; return; }
+  $('resBoard').textContent = '랭킹에 기록 중…';
+  const res = await Rank.submit(run);
+  if (!res.ok){ $('resBoard').textContent = res.why || '랭킹 저장 실패'; if (!res.final) $('resRetry').classList.remove('hidden'); return; }
+  const list = await Rank.board('today'); const pos = list ? list.findIndex(r => r.id === Rank.uid) + 1 : 0;
+  $('resBoard').textContent = (res.dup ? '이미 저장된 기록이에요 · ' : res.newBest ? '🎉 오늘 최고 기록 갱신! ' : `오늘 내 최고 ${res.doc.dayBest.toLocaleString()}점 · `) + (pos ? `오늘의 랭킹 ${pos}위` : '');
+}
 let revTimer = 0, fallFrom = null;
-function onFall(){ if (G_.mode !== 'play') return; Audio.play('fall');
-  if (G_.revives > 0){ G_.mode = 'revive'; G_.paused = true; revTimer = 5; $('revCount').textContent = 5; fallFrom = player.safe; showScreen('sRevive'); }
-  else toast('으악! 아래층으로… 😱', 1.5); }
-function doRevive(){ G_.revives--; const s = fallFrom || player.safe; setPolar(player, s.a, clamp(s.r, R0 + .8, R1 - .8), s.y + .05); player.vel.set(0, 0, 0); player.stun = 0; player.grounded = true; player.shield = 1; player.lastGroundY = player.pos.y;
-  G_.mode = 'play'; G_.paused = false; showScreen(null); Audio.play('revive'); toast('부활! 실드 장착 💖'); }
-function skipRevive(){ G_.mode = 'play'; G_.paused = false; showScreen(null); }
+function onFall(){ if (G_.mode !== 'play' || player.noFallCheck) return; Audio.play('fall');
+  if (G_.revives > 0){ G_.mode = 'revive'; G_.paused = true; revTimer = 5; $('revCount').textContent = 5; fallFrom = player.safe; resetInput(); showScreen('sRevive'); }
+  else { toast('으악! 아래층으로… 😱', 1.5); player.noFallCheck = true; } }
+// a revive spot must be on solid road, away from obstacles and other runners
+function spotIsSafe(a, r){
+  const tp = roadTop(a, r); if (!tp) return null; const sg = tp.seg; if (r < sg.r0 + .7 || r > sg.r1 - .7) return null;
+  const x = Math.cos(a) * r, z = Math.sin(a) * r;
+  for (const o of world.obs){
+    if (Math.abs(wrap(o.a - a)) > 1.2) continue; if (o.y !== undefined && Math.abs(o.y - tp.top) > 2.5) continue;
+    if (o.type === 'dome' || o.type === 'slime'){ if (Math.hypot(x - o.x, z - o.z) < o.rad + 1.2) return null; }
+    else if (o.type === 'sweeper'){ if (Math.hypot(x - o.x, z - o.z) < o.len + 1) return null; }
+    else if (o.type === 'wall' || o.type === 'hammer'){ if (Math.abs(wrap(a - o.a)) * r < 2.2) return null; }
+  }
+  for (const b of world.barrels) if (Math.abs(wrap(a - b.a)) * r < 2.5 && Math.abs(b.y - tp.top) < 2) return null;
+  for (const e of ents) if (e !== player && Math.hypot(e.pos.x - x, e.pos.z - z) < 1 && Math.abs(e.pos.y - tp.top) < 1.5) return null;
+  return tp.top;
+}
+function findSafeSpot(from){
+  const lanes = [RMID, RMID - 1.4, RMID + 1.4, R0 + 1.2, R1 - 1.2];
+  for (let k = 0; k <= 40; k++){ const a = from.a - k * .05; for (const r of lanes){ const y = spotIsSafe(a, r); if (y !== null) return { a, r, y }; } }
+  return { a: from.a, r: clamp(from.r, R0 + .8, R1 - .8), y: from.y };
+}
+function doRevive(){
+  if (G_.mode !== 'revive') return;
+  G_.revives--; const sp = findSafeSpot(fallFrom || player.safe);
+  setPolar(player, sp.a, sp.r, sp.y + .02); player.vel.set(0, 0, 0); player.stun = 0; player.grounded = true; player.ground = null; player.shield = 1; player.invul = 1.5; player.lastGroundY = player.pos.y; player.noFallCheck = false;
+  camYaw = Math.atan2(-Math.sin(player.a), Math.cos(player.a)); camDir = null; camFocusY = null;
+  resetInput(); G_.mode = 'play'; G_.paused = false; showScreen(null); Audio.play('revive'); toast('부활! 잠깐 무적 + 실드 💖'); }
+function skipRevive(){ if (G_.mode !== 'revive') return; player.noFallCheck = true; resetInput(); G_.mode = 'play'; G_.paused = false; showScreen(null); }
 
 const EVENTS = [
   { id: 'fast', name: '⏩ 빨리감기', dur: 8, on(){ EV.fast = 1.35; }, off(){ EV.fast = 1; } },
@@ -941,9 +1136,11 @@ function tickEvents(dt){
 function buildCharGrid(){ const g = $('chars'); g.innerHTML = '';
   for (const c of CHARS){ const b = document.createElement('button'); b.className = 'ch' + (c.id === G_.charId ? ' sel' : ''); b.innerHTML = `<img src="models/c${c.id}.webp" alt=""><span class="nm"></span>`; b.querySelector('.nm').textContent = c.name;
     b.onclick = () => { G_.charId = c.id; store.set('labtower-char', c.id); Audio.init().then(() => Audio.play('click')); buildCharGrid(); }; g.appendChild(b); } }
-function nick(){ const v = ($('nickIn').value || '').trim().slice(0, 10); return v || CHARS[G_.charId].name; }
+const cleanNick = v => String(v || '').replace(/[^0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ _\-.]/g, '').replace(/\s+/g, ' ').trim().slice(0, 10);
+function nick(){ return cleanNick($('nickIn').value) || CHARS[G_.charId].name; }
+$('nickIn').addEventListener('input', () => { const v = $('nickIn').value, c = cleanNick(v); $('nickHint').textContent = v.trim() && c !== v.trim() ? '한글·영문·숫자·공백·_-. 만 쓸 수 있어요 (최대 10자)' : ''; });
 $('nickIn').value = store.get('pangsdak-nick', '');
-$('nickIn').addEventListener('change', () => store.set('pangsdak-nick', ($('nickIn').value || '').trim().slice(0, 10)));
+$('nickIn').addEventListener('change', () => { const c = cleanNick($('nickIn').value); $('nickIn').value = c; store.set('pangsdak-nick', c); });
 $('nickIn').addEventListener('keydown', e => e.stopPropagation());
 function goHome(){ Audio.play('click'); Audio.stopBgm(); if (G_.ev){ G_.ev.off(); G_.ev = null; } $('event').classList.remove('show'); G_.mode = 'menu'; G_.paused = true; $('hud').classList.add('hidden'); $('touch').classList.add('hidden'); $('go').classList.add('hidden'); updateDailyUI(); showScreen('sTitle'); }
 function coverStart(e){ if (e) e.stopPropagation(); showScreen('sTitle'); updateDailyUI(); try { Audio.init(); Audio.play('click'); } catch(err){} }
@@ -951,10 +1148,13 @@ $('btnStart').onclick = coverStart;
 $('coverBox').onclick = e => { if (e.target.id !== 'btnExit') coverStart(e); };
 $('btnExit').onclick = e => { e.stopPropagation(); showScreen('sBye'); };
 $('byeBack').onclick = () => showScreen('sCover');
-$('dailyBtn').onclick = () => { store.set('pangsdak-nick', ($('nickIn').value || '').trim().slice(0, 10)); Audio.init(); startGame('daily'); };
+$('dailyBtn').onclick = () => { const c = cleanNick($('nickIn').value); $('nickIn').value = c; store.set('pangsdak-nick', c); Audio.init(); startGame('daily'); };
 $('practiceBtn').onclick = () => { Audio.init(); startGame('practice'); };
 $('againBtn').onclick = () => startGame(G_.type);
 $('homeBtn2').onclick = goHome;
+$('resRetry').onclick = () => submitRun();
+$('loadRetry').onclick = () => startGame(G_.type || 'daily');
+$('loadHome').onclick = () => { $('loadErr').classList.add('hidden'); showScreen('sTitle'); };
 $('rulesBtn').onclick = () => { Audio.init().then(() => Audio.play('click')); showScreen('sRules'); };
 let rankTab = 'today', rankFrom = 'sTitle';
 async function renderRank(){
@@ -980,16 +1180,22 @@ document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { Audio
 $('soundTop').onclick = async () => { await Audio.init(); Audio.toggle(); updateDailyUI(); };
 $('gear').onclick = () => { if (G_.mode !== 'play' && G_.mode !== 'count') return; G_.prevMode = G_.mode; G_.mode = 'settings'; G_.paused = true; updateDailyUI(); showScreen('sSettings'); };
 $('setSound').onclick = async () => { await Audio.init(); Audio.toggle(); if (Audio.on) Audio.startBgm(); else Audio.stopBgm(); updateDailyUI(); };
-$('setGfx').onclick = () => { setGfx(!GFX.high); updateDailyUI(); };
-$('setResume').onclick = () => { G_.mode = G_.prevMode || 'play'; G_.paused = G_.mode !== 'play'; showScreen(null); };
+$('setGfx').onclick = () => { store.set('pangsdak-gfx-manual', true); setGfx(!GFX.high); updateDailyUI(); };
+$('setResume').onclick = () => { resetInput(); G_.mode = G_.prevMode || 'play'; G_.paused = G_.mode !== 'play'; showScreen(null); Audio.resume(); last = performance.now(); };
 $('setHome').onclick = goHome;
 $('reviveBtn').onclick = doRevive; $('giveupBtn').onclick = skipRevive;
-$('shareBtn').onclick = async () => { const txt = `🏃 팽스닥 마라톤 ${G_.type === 'daily' ? '오늘의 도전' : '연습'} — ${$('resRank').textContent} · ${G_.score.toLocaleString()}점 (${$('resProg').textContent}) 혈압 주의!`;
-  let ok = false; try { await navigator.clipboard.writeText(txt); ok = true; } catch(e){}
-  $('shareInfo').textContent = ok ? '기록을 복사했어요! 친구에게 붙여넣어 공유하세요.' : `복사가 막혔어요. 이 문구를 공유하세요: ${txt}`; Audio.play('checkpoint'); };
+$('shareBtn').onclick = async () => {
+  const fin = !!(G_.lastRunFin);
+  const text = `🏃 팽스닥 마라톤 ${G_.type === 'daily' ? '오늘의 도전' : '연습'} — ${fin ? $('resRank').textContent + ' 완주' : '진행도 ' + $('resProg').textContent + ' (현재 ' + $('resRank').textContent + ')'} · ${G_.score.toLocaleString()}점! 혈압 주의 🔥 같이 달려요 👉`;
+  try {
+    if (navigator.share){ await navigator.share({ title: '팽스닥 마라톤', text, url: SHARE_URL }); $('shareInfo').textContent = '공유했어요!'; Audio.play('checkpoint'); return; }
+  } catch(e){ if (e && e.name === 'AbortError') return; }
+  const full = text + ' ' + SHARE_URL; let ok = false; try { await navigator.clipboard.writeText(full); ok = true; } catch(e){}
+  $('shareInfo').textContent = ok ? '기록과 게임 링크를 복사했어요! 카톡에 붙여넣어 공유하세요.' : `복사가 막혔어요. 이 문구를 공유하세요: ${full}`; Audio.play('checkpoint'); };
+$('shareBtn').textContent = '📤 기록 공유';
 
 /* ================================================================ main loop */
-let camA = 0, camY = 3, camYaw = 0, camDist = 6, camDir = null, last = performance.now(), clock = 0;
+let camA = 0, camY = 3, camYaw = 0, camDist = 6, camDir = null, camFocusY = null, last = performance.now(), clock = 0;
 const camRay = new THREE.Raycaster();
 function frame(now){
   requestAnimationFrame(frame);
@@ -998,9 +1204,9 @@ function frame(now){
   if (G_.mode === 'revive'){ revTimer -= dt; $('revCount').textContent = Math.max(0, Math.ceil(revTimer)); if (revTimer <= 0) skipRevive(); }
   if (G_.mode === 'count'){ G_.count -= dt; const go = $('go'); go.classList.remove('hidden'); const c = Math.ceil(G_.count - .2);
     const txt = c > 0 ? String(c) : 'GO!'; if (go.textContent !== txt){ go.textContent = txt; Audio.play(c > 0 ? 'click' : 'checkpoint'); }
-    if (G_.count <= 0){ go.classList.add('hidden'); G_.mode = 'play'; G_.paused = false; } }
+    if (G_.count <= 0){ go.classList.add('hidden'); G_.mode = 'play'; G_.paused = false; resetInput(); } }
   // decor animation
-  if ((clock * 30 | 0) % 2 === 0) updateSpectators(clock);
+  if ((clock * 30 | 0) % (isTouch || !GFX.high ? 3 : 2) === 0) updateSpectators(clock);
   for (const b of balloons) b.g.position.y = b.y + Math.sin(clock * (b.slow ? .4 : .8) + b.ph) * (b.slow ? .8 : 1.2);
   for (const c of clouds){ c.a += c.sp * dt; c.g.position.x = Math.cos(c.a) * c.r; c.g.position.z = Math.sin(c.a) * c.r; c.g.lookAt(0, c.g.position.y, 0); }
   for (const s of spinners){ if (s.y) s.o.rotation.y += s.w * dt; else { s.o.rotation.z += s.w * dt; if (s.cab) s.o.children.forEach(ch => { if (ch.userData.cab) ch.rotation.z = -s.o.rotation.z; }); } }
@@ -1013,12 +1219,17 @@ function frame(now){
     const hs = Math.hypot(e.vel.x, e.vel.z);
     let anim = 'Idle'; if (e.finished) anim = 'Jump'; else if (e.pushT > 0) anim = 'Push'; else if (!e.grounded) anim = e.stun > 0 || e.vel.y < -10 ? 'Fall' : 'Jump'; else if (hs > .8) anim = 'Run';
     playAnim(e, anim); if (e.av.acts.Run) e.av.acts.Run.timeScale = clamp(hs / 4.5, .6, 1.8);
-    e.av.mixer.update(dt);
+    const camD = camera.position.distanceTo(e.pos); e.av.mixAcc += dt;
+    if (e === player || camD < 35 || e.av.mixAcc > .05){ e.av.mixer.update(e.av.mixAcc); e.av.mixAcc = 0; }
+    // hit reaction: quick squash + lean back
+    const ht = Math.max(0, e.hitT || 0); e.av.inner.rotation.x = -Math.sin(Math.min(1, ht / .35) * Math.PI) * .45;
     if (e.av.bubbleT > 0){ e.av.bubbleT -= dt; if (e.av.bubbleT <= 0) e.av.bubble.visible = false; }
-    e.av.shieldM.visible = e.shield > 0; if (e.marker) e.marker.position.y = HGT + .6 + Math.sin(clock * 5) * .06;
+    { const want = e.invul > 0 ? (.55 + Math.sin(clock * 18) * .15) * Math.min(1, e.invul / .4) : e.shield > 0 ? .4 : 0; e.av.shieldA = lerp(e.av.shieldA, want, Math.min(1, dt * 8));
+      e.av.shieldM.visible = e.av.shieldA > .02; e.av.shieldM.material.opacity = e.av.shieldA; e.av.shieldM.scale.setScalar(e.invul > 0 ? 1.1 : 1); } if (e.marker) e.marker.position.y = HGT + .6 + Math.sin(clock * 5) * .06;
     if (e.isBot && !e.finished && !e.av.bubble.visible && Math.random() < dt * .03) emote(e, ['😆', '😎', '🤪', '😤'][Math.floor(Math.random() * 4)], 1.2);
   }
-  for (let i = pops.length - 1; i >= 0; i--){ const p = pops[i]; p.t -= dt; p.s.position.y += dt * 1.2; p.s.material.opacity = clamp(p.t / .4, 0, 1); if (p.t <= 0){ scene.remove(p.s); pops.splice(i, 1); } }
+  FX.update(dt); Perf.tick();
+  for (let i = pops.length - 1; i >= 0; i--){ const p = pops[i]; p.t -= dt; p.s.position.y += dt * 1.2; p.s.material.opacity = clamp(p.t / .4, 0, 1); if (p.t <= 0){ scene.remove(p.s); p.s.material.dispose(); pops.splice(i, 1); } }
   // HUD + camera
   if (player && world){
     $('score').textContent = G_.score.toLocaleString() + '점';
@@ -1031,15 +1242,17 @@ function frame(now){
     let wantYaw = camYaw;
     if (onRoad) wantYaw = Math.atan2(-Math.sin(player.a), Math.cos(player.a));          // along the road
     else if (Math.hypot(player.vel.x, player.vel.z) > 1.2) wantYaw = Math.atan2(player.vel.x, player.vel.z); // off-road: follow movement
-    camYaw += wrap(wantYaw - camYaw) * Math.min(1, dt * (onRoad ? 4 : 2.5));
+    camYaw += wrap(wantYaw - camYaw) * Math.min(1, dt * (onRoad ? 3 : 2));
     const hx = Math.sin(camYaw), hz = Math.cos(camYaw);
-    camY = lerp(camY, player.pos.y + up, Math.min(1, dt * 5));
-    const focus = new THREE.Vector3(player.pos.x, player.pos.y + 1.1, player.pos.z);
+    const falling = !player.grounded && player.vel.y < -6;
+    camY = lerp(camY, player.pos.y + up, Math.min(1, dt * (falling ? 2.2 : 4.5)));
+    camFocusY = camFocusY === null ? player.pos.y : lerp(camFocusY, player.pos.y, Math.min(1, dt * (falling ? 3 : 10)));
+    const focus = new THREE.Vector3(player.pos.x, camFocusY + 1.1, player.pos.z);
     // try the normal view first, then lower / closer views; use the first one with a clear line to the runner
-    const cands = [[back, camY - player.pos.y], [back, 1.6], [back * .8, .9], [back * .6, 2.2], [back * .5, .6]];
+    const cands = [[back, camY - camFocusY], [back, 1.6], [back * .8, .9], [back * .6, 2.2], [back * .5, .6]];
     let best = null;
     for (const [bk, hu] of cands){
-      const want = new THREE.Vector3(player.pos.x - hx * bk, player.pos.y + hu, player.pos.z - hz * bk);
+      const want = new THREE.Vector3(player.pos.x - hx * bk, camFocusY + hu, player.pos.z - hz * bk);
       const dir = want.clone().sub(focus); const dist = dir.length(); dir.normalize();
       camRay.set(focus, dir); camRay.far = dist + .4;
       const hit = world && world.occluders ? camRay.intersectObjects(world.occluders, false)[0] : null;
@@ -1050,9 +1263,10 @@ function frame(now){
     camDist = best.free < camDist ? best.free : lerp(camDist, best.free, Math.min(1, dt * 3));
     if (!camDir) camDir = best.dir.clone(); camDir.lerp(best.dir, Math.min(1, dt * 6)).normalize();
     const cp = focus.clone().addScaledVector(camDir, Math.min(camDist, best.dist));
-    if (shake > 0){ shake -= dt; cp.x += (Math.random() - .5) * shake; cp.y += (Math.random() - .5) * shake; }
+    if (shake > 0){ shake = Math.max(0, shake - dt * 1.4); const a = Math.min(.25, shake) * .6; cp.x += (Math.random() - .5) * a; cp.y += (Math.random() - .5) * a; }
+    { const cr = Math.hypot(cp.x, cp.z); if (cr < RC + .9){ const k = (RC + .9) / Math.max(cr, .01); cp.x *= k; cp.z *= k; } }   // never inside the tower
     camera.position.copy(cp);
-    camera.lookAt(player.pos.x + hx * 2.2, player.pos.y + .9, player.pos.z + hz * 2.2);
+    const ahead = camera.aspect < 1 ? 3.2 : 2.4; camera.lookAt(player.pos.x + hx * ahead, camFocusY + .9, player.pos.z + hz * ahead);
     sun.position.set(player.pos.x + 10, player.pos.y + 22, player.pos.z + 8); sun.target.position.copy(player.pos);
     sky.position.copy(camera.position);
   } else if (world){
@@ -1085,28 +1299,26 @@ function simulate(dt){
     if (running && player){
       for (const e of ents){
         if (e.grounded && e.stun <= 0 && e.ground && !e.ground.plaza && !e.ground.pad){ e.safeT -= dt; if (e.safeT <= 0){ e.safeT = .25; e.safe = { a: e.a, r: e.r, y: e.pos.y }; } }
-        if (!e.finished && e.grounded && e.a >= world.finishA){ e.finished = true; e.finishT = G_.t; G_.finishOrder.push(e); e.finishRank = G_.finishOrder.length; emote(e, '🥳', 3); if (e === player){ toast(`🏁 ${e.finishRank}등 골인!`, 2.5); confetti(); endGame(true); } }
+        if (!e.finished && e.grounded && e.a >= world.finishA){ e.finished = true; e.finishT = G_.t; G_.finishOrder.push(e); e.finishRank = G_.finishOrder.length; emote(e, '🥳', 3); if (e === player){ toast(e.finishRank === 1 ? '🥇 1등 골인!!' : e.finishRank <= 3 ? `🏅 ${e.finishRank}등 골인!` : `🏁 ${e.finishRank}등 골인!`, 2.5); confetti(); endGame(true); } }
         if (e.isBot && !e.finished && (e.pos.y < e.lastGroundY - 3.5) && e.stuck < 99){ /* falling */ }
       }
-      if (G_.mode === 'play' && !player.finished && player.pos.y < player.lastGroundY - 4) { player.lastGroundY = player.pos.y; onFall(); }
-      G_.score = scoreOf(player);
+      if (G_.mode === 'play' && !player.finished && !player.noFallCheck && player.pos.y < player.lastGroundY - 4) { player.lastGroundY = player.pos.y; onFall(); }
+      if (G_.mode === 'play') G_.score = scoreOf(player);   // the final score set by endGame() must not be overwritten
       if (G_.t >= TIME_LIMIT && G_.mode === 'play') endGame(false);
       updateStageTag(false);
     }
   }
 }
 let simT = 0;
-function confetti(){ const g = new THREE.Group(); scene.add(g); const cols = [0xffd23f, 0x4ff0c8, 0xff6b9a, 0x6fd3ff, 0xffffff];
-  for (let i = 0; i < 180; i++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(.14, .22), new THREE.MeshBasicMaterial({ color: cols[i % 5], side: THREE.DoubleSide })); m.position.copy(player.pos).add(new THREE.Vector3((Math.random() - .5) * 2, 1 + Math.random(), (Math.random() - .5) * 2)); m.userData.v = new THREE.Vector3((Math.random() - .5) * 7, 6 + Math.random() * 6, (Math.random() - .5) * 7); g.add(m); }
-  let life = 3; const tick = () => { life -= 1 / 60; for (const m of g.children){ m.userData.v.y -= 9.8 / 60; m.position.addScaledVector(m.userData.v, 1 / 60); m.rotation.x += .2; m.rotation.y += .13; } if (life > 0) requestAnimationFrame(tick); else scene.remove(g); }; tick(); }
+function confetti(){ if (!player) return; FX.confetti(player.pos.x, player.pos.y, player.pos.z, 170); setTimeout(() => player && FX.confetti(player.pos.x, player.pos.y + .5, player.pos.z, 90), 450); }
 
-window.__lab = { sim(sec){ for (let i = 0; i < sec * 60; i++){ simulate(1 / 60); if (G_.mode === 'revive') skipRevive(); if (G_.mode === 'count'){ G_.count -= 1 / 60; if (G_.count <= 0){ G_.mode = 'play'; G_.paused = false; } } } }, get player(){ return player; }, get ents(){ return ents; }, get world(){ return world; }, G_, roadTop, setPolar, blockedAt, support };
+window.__lab = { sim(sec){ for (let i = 0; i < sec * 60; i++){ simulate(1 / 60); if (G_.mode === 'revive' && window.__auto) skipRevive(); if (G_.mode === 'count'){ G_.count -= 1 / 60; if (G_.count <= 0){ G_.mode = 'play'; G_.paused = false; } } } }, get player(){ return player; }, get ents(){ return ents; }, get world(){ return world; }, G_, roadTop, setPolar, blockedAt, support, spotIsSafe, startGame, endGame, resetInput, Rank, Audio, EV, FX, Perf, renderer, TIME_LIMIT, get touchVec(){ return touchVec; }, get camYaw(){ return camYaw; }, get buildCount(){ return buildCount; }, THREE, scene };
 /* ================================================================ boot */
 (async function boot(){
   buildDecor(); buildCourse(hashStr('pangsdak' + todayKey()));
   requestAnimationFrame(frame);
   const bar = $('loadbar').firstElementChild;
-  try { await loadChar(G_.charId); } catch(e){ console.warn(e); }
+  try { await Promise.race([loadChar(G_.charId), new Promise(r => setTimeout(r, 6000))]); } catch(e){ console.warn(e); }   // never hold the cover screen hostage to one model
   bar.style.width = '100%'; buildCharGrid(); updateDailyUI(); showScreen('sCover'); Rank.init().then(updateDailyUI);
   setTimeout(() => CHARS.forEach(c => loadChar(c.id).catch(() => {})), 600);
 })();
