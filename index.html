@@ -379,8 +379,8 @@ function buildCourse(seed){
   const STAGE_LEN = TAU * 1.22;
   const addSeg = s => { s.stage = stage; segs.push(s); return s; };
   const ramp = (len, opt = {}) => { const a0 = a, a1 = a + arc(len); const r0 = opt.r0 ?? R0, r1 = opt.r1 ?? R1;
-    const y1 = clamp(target(a1), y + .02 * len, y + .2 * len); const s = addSeg({ kind: 'ramp', a0, a1, r0, r1, y0: y, y1, rail: opt.r0 === undefined }); a = a1; y = y1; return s; };
-  const stairs = n => { const depth = 2.9, rise = .62, a0 = a, a1 = a + arc(depth * n); const s = addSeg({ kind: 'steps', a0, a1, r0: R0, r1: R1, y0: y, y1: y + rise * n, n, rise, rail: true }); a = a1; y += rise * n; return s; };
+    const y1 = clamp(target(a1), y + .02 * len, y + .2 * len); const s = addSeg({ kind: 'ramp', a0, a1, r0, r1, y0: y, y1, rail: opt.r0 === undefined, base: a1 <= TAU + .01 }); a = a1; y = y1; return s; };
+  const stairs = n => { const depth = 2.9, rise = .62, a0 = a, a1 = a + arc(depth * n); const s = addSeg({ kind: 'steps', a0, a1, r0: R0, r1: R1, y0: y, y1: y + rise * n, n, rise, rail: true, base: a1 <= TAU + .01 }); a = a1; y += rise * n; return s; };
   const gap = len => { const s = addSeg({ kind: 'gap', a0: a, a1: a + arc(len), y0: y, y1: y }); a += arc(len); return s; };
   // obstacle factories (positions given as fraction along a segment)
   const at = (s, f) => lerp(s.a0, s.a1, f);
@@ -425,8 +425,8 @@ function buildCourse(seed){
   for (const s of segs){
     if (s.kind === 'gap') continue;
     let geo;
-    if (s.kind === 'ramp') geo = solidSector(s.a0, s.a1, s.r0, s.r1, aa => lerp(s.y0, s.y1, (aa - s.a0) / (s.a1 - s.a0)), aa => lerp(s.y0, s.y1, (aa - s.a0) / (s.a1 - s.a0)) - THICK);
-    if (s.kind === 'steps'){ const geos = []; const da = (s.a1 - s.a0) / s.n; for (let i = 0; i < s.n; i++){ const top = s.y0 + s.rise * (i + 1); const m = new THREE.Mesh(solidSector(s.a0 + da * i, s.a0 + da * (i + 1), s.r0, s.r1, () => top, () => s.y0 - THICK), stepMats[s.stage]); m.castShadow = m.receiveShadow = true; group.add(m); } continue; }
+    if (s.kind === 'ramp') geo = solidSector(s.a0, s.a1, s.r0, s.r1, aa => lerp(s.y0, s.y1, (aa - s.a0) / (s.a1 - s.a0)), aa => s.base ? -.3 : lerp(s.y0, s.y1, (aa - s.a0) / (s.a1 - s.a0)) - THICK);
+    if (s.kind === 'steps'){ const geos = []; const da = (s.a1 - s.a0) / s.n; for (let i = 0; i < s.n; i++){ const top = s.y0 + s.rise * (i + 1); const m = new THREE.Mesh(solidSector(s.a0 + da * i, s.a0 + da * (i + 1), s.r0, s.r1, () => top, () => s.base ? -.3 : s.y0 - THICK), stepMats[s.stage]); m.castShadow = m.receiveShadow = true; group.add(m); } continue; }
     const m = new THREE.Mesh(geo, roadMats[s.stage]); m.castShadow = true; m.receiveShadow = true; group.add(m);
   }
   for (const s of segs) if (s.kind !== 'gap') edgeDeco(group, s);
@@ -449,11 +449,12 @@ function buildCourse(seed){
   const plazaTop = new THREE.Mesh(new THREE.CircleGeometry(45.5, 64), std(0x9fd0ff, { roughness: .9 })); plazaTop.rotation.x = -Math.PI / 2; plazaTop.position.y = -.29; plazaTop.receiveShadow = true; group.add(plazaTop);
   for (const o of obs) group.add(o.mesh);
   for (const p of pads) group.add(p.mesh);
+  world.occluders = []; group.traverse(o => { if (o.isMesh && !o.material.transparent && !(o.geometry && o.geometry.type === 'TubeGeometry') && !(o.geometry && o.geometry.type === 'PlaneGeometry')) world.occluders.push(o); });
 }
 function segAt(a){ const S = world.segs; if (a < S[0].a0 || a >= S[S.length - 1].a1) return null; let lo = 0, hi = S.length - 1; while (lo < hi){ const m = (lo + hi + 1) >> 1; if (S[m].a0 <= a) lo = m; else hi = m - 1; } return S[lo]; }
 function roadTop(a, r){ const s = segAt(a); if (!s || s.kind === 'gap') return null; if (r < s.r0 - .02 || r > s.r1 + .02) return null;
-  if (s.kind === 'ramp') return { top: lerp(s.y0, s.y1, (a - s.a0) / (s.a1 - s.a0)), bot: lerp(s.y0, s.y1, (a - s.a0) / (s.a1 - s.a0)) - THICK, seg: s };
-  const i = Math.min(s.n - 1, Math.floor((a - s.a0) / ((s.a1 - s.a0) / s.n))); return { top: s.y0 + s.rise * (i + 1), bot: s.y0 - THICK, seg: s }; }
+  if (s.kind === 'ramp'){ const tp = lerp(s.y0, s.y1, (a - s.a0) / (s.a1 - s.a0)); return { top: tp, bot: s.base ? -.5 : tp - THICK, seg: s }; }
+  const i = Math.min(s.n - 1, Math.floor((a - s.a0) / ((s.a1 - s.a0) / s.n))); return { top: s.y0 + s.rise * (i + 1), bot: s.base ? -.5 : s.y0 - THICK, seg: s }; }
 function stageAtA(a){ let st = 0; for (const s of world.stageStarts) if (a >= s.a) st = s.stage; return st; }
 
 /* ---------------- edge decoration: low outer barrier with neon line, pink inner curb, floor chevrons */
@@ -886,7 +887,7 @@ async function startGame(type){
   ents.forEach((e, i) => { const row = Math.floor(i / 4), col = i % 4; const a = .3 - row * .14 / 1, r = lerp(R0 + 1, R1 - 1, (col + .5) / 4); const tp = roadTop(Math.max(.02, a), r); setPolar(e, Math.max(.02, a), r, tp ? tp.top : 0); e.face = Math.atan2(-Math.sin(e.a), Math.cos(e.a)); e.lastGroundY = e.pos.y; e.safe = { a: e.a, r: e.r, y: e.pos.y }; });
   // shuffle the player into a middle slot
   { const k = 6 + Math.floor(Math.random() * 4); const s = ents[k]; const pa = player.a, pr = player.r, py = player.pos.y; setPolar(player, s.a, s.r, s.pos.y); setPolar(s, pa, pr, py); player.safe = { a: player.a, r: player.r, y: player.pos.y }; }
-  camA = player.a - .6; camY = player.pos.y + 3;
+  camA = player.a - .6; camY = player.pos.y + 3; camYaw = Math.atan2(-Math.sin(player.a), Math.cos(player.a)); camDist = 6;
   Object.assign(G_, { mode: 'count', t: 0, revives: 1, score: 0, paused: true, stage: 0, finishOrder: [], evT: 35 + Math.random() * 10, evLeft: 0, ev: null, count: 3.2 });
   Object.assign(EV, { fast: 1, grav: 1, wind: 0, slip: 1 });
   $('hud').classList.remove('hidden'); $('touch').classList.remove('hidden'); showScreen(null);
@@ -988,7 +989,8 @@ $('shareBtn').onclick = async () => { const txt = `🏃 팽스닥 마라톤 ${G_
   $('shareInfo').textContent = ok ? '기록을 복사했어요! 친구에게 붙여넣어 공유하세요.' : `복사가 막혔어요. 이 문구를 공유하세요: ${txt}`; Audio.play('checkpoint'); };
 
 /* ================================================================ main loop */
-let camA = 0, camY = 3, last = performance.now(), clock = 0;
+let camA = 0, camY = 3, camYaw = 0, camDist = 6, camDir = null, last = performance.now(), clock = 0;
+const camRay = new THREE.Raycaster();
 function frame(now){
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - last) / 1000); last = now; clock += dt;
@@ -1023,15 +1025,34 @@ function frame(now){
     const left = Math.max(0, TIME_LIMIT - G_.t); $('timer').textContent = `${Math.floor(left / 60)}:${(left % 60).toFixed(1).padStart(4, '0')}`;
     $('hearts').textContent = G_.revives > 0 ? `❤️ ×${G_.revives}` : '🖤 ×0'; $('shield').classList.toggle('hidden', !(player.shield > 0));
     if ((clock * 10 | 0) % 3 === 0){ const r = player.finished ? player.finishRank : rankOf(player); $('rank').innerHTML = `🏆 ${r}위<span class="sn"> · 남은 ${ents.filter(e => !e.finished).length}명</span>`; }
-    const back = camera.aspect < 1 ? 7.4 : 6.2;
-    const pr = Math.max(player.r, R0);
-    const tgtA = player.a - back / Math.max(pr + 1.2, R0 + 2.8);
-    camA += wrap(tgtA - camA) * Math.min(1, dt * 4);
-    camY = lerp(camY, player.pos.y + 3.2, Math.min(1, dt * 4));
-    const camR = clamp(pr + 1.1, R0 + 2.8, R1 - .4);
-    const cp = P(camA, camR, camY); if (shake > 0){ shake -= dt; cp.x += (Math.random() - .5) * shake; cp.y += (Math.random() - .5) * shake; }
+    // third-person follow camera: behind the runner, pulled in front of anything that would hide them
+    const back = camera.aspect < 1 ? 7.0 : 6.0, up = camera.aspect < 1 ? 3.4 : 3.0;
+    const onRoad = !!(player.ground && player.ground.seg) || (!!segAt(player.a) && player.r < R1 + .6 && player.r > R0 - .6 && player.pos.y > -.1);
+    let wantYaw = camYaw;
+    if (onRoad) wantYaw = Math.atan2(-Math.sin(player.a), Math.cos(player.a));          // along the road
+    else if (Math.hypot(player.vel.x, player.vel.z) > 1.2) wantYaw = Math.atan2(player.vel.x, player.vel.z); // off-road: follow movement
+    camYaw += wrap(wantYaw - camYaw) * Math.min(1, dt * (onRoad ? 4 : 2.5));
+    const hx = Math.sin(camYaw), hz = Math.cos(camYaw);
+    camY = lerp(camY, player.pos.y + up, Math.min(1, dt * 5));
+    const focus = new THREE.Vector3(player.pos.x, player.pos.y + 1.1, player.pos.z);
+    // try the normal view first, then lower / closer views; use the first one with a clear line to the runner
+    const cands = [[back, camY - player.pos.y], [back, 1.6], [back * .8, .9], [back * .6, 2.2], [back * .5, .6]];
+    let best = null;
+    for (const [bk, hu] of cands){
+      const want = new THREE.Vector3(player.pos.x - hx * bk, player.pos.y + hu, player.pos.z - hz * bk);
+      const dir = want.clone().sub(focus); const dist = dir.length(); dir.normalize();
+      camRay.set(focus, dir); camRay.far = dist + .4;
+      const hit = world && world.occluders ? camRay.intersectObjects(world.occluders, false)[0] : null;
+      const free = hit ? Math.max(1.2, hit.distance - .35) : dist;
+      if (!best || free > best.free + .01) best = { dir, dist, free };
+      if (!hit) break;
+    }
+    camDist = best.free < camDist ? best.free : lerp(camDist, best.free, Math.min(1, dt * 3));
+    if (!camDir) camDir = best.dir.clone(); camDir.lerp(best.dir, Math.min(1, dt * 6)).normalize();
+    const cp = focus.clone().addScaledVector(camDir, Math.min(camDist, best.dist));
+    if (shake > 0){ shake -= dt; cp.x += (Math.random() - .5) * shake; cp.y += (Math.random() - .5) * shake; }
     camera.position.copy(cp);
-    const la = player.a + 2.2 / pr; camera.lookAt(Math.cos(la) * (pr - .2), player.pos.y + .9, Math.sin(la) * (pr - .2));
+    camera.lookAt(player.pos.x + hx * 2.2, player.pos.y + .9, player.pos.z + hz * 2.2);
     sun.position.set(player.pos.x + 10, player.pos.y + 22, player.pos.z + 8); sun.target.position.copy(player.pos);
     sky.position.copy(camera.position);
   } else if (world){
@@ -1052,7 +1073,7 @@ function simulate(dt){
       let ix = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + touchVec.x;
       let iy = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + touchVec.y;
       const il = Math.hypot(ix, iy); if (il > 1){ ix /= il; iy /= il; }
-      const cf = new THREE.Vector3(); camera.getWorldDirection(cf); cf.y = 0; cf.normalize(); const cr = new THREE.Vector3(-cf.z, 0, cf.x);
+      const cf = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw)); const cr = new THREE.Vector3(-cf.z, 0, cf.x);
       const wish = { x: cr.x * ix + cf.x * iy, z: cr.z * ix + cf.z * iy };
       if (pushPressed && s === 0) doPush(player);
       if (window.__auto){ const ai = botThink(player, h); stepEnt(player, h, ai.wish, ai.jump); } else stepEnt(player, h, wish, jumpPressed && s === 0);
