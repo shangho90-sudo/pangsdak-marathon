@@ -45,6 +45,8 @@ SFX = {
     "shield":     ("magical bubble shield pop and shimmer, game sfx", 0.7),
     "event":      ("short arcade alert jingle announcing a surprise event, game sfx", 1.2),
     "click":      ("soft UI button click pop, game menu", 0.3),
+    "crash":      ("heavy wooden crate slamming onto the ground, dusty thud impact, game sfx", 0.8),
+    "boing":      ("big springy launch ring boing with rising whoosh, game sfx", 0.8),
 }
 
 def create(endpoint, body):

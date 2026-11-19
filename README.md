@@ -11,7 +11,8 @@
 
 ```bash
 pip install playwright && python -m playwright install chromium
-python tests/e2e_test.py                         # 39개 항목: 시작·조작·부활·완주·랭킹·공유·재시작 메모리·로딩 실패 등
+python tests/e2e_test.py                         # 39개 항목: 시작·조작·추락 게임오버·완주·랭킹·공유·재시작 메모리·로딩 실패 등
 python tests/e2e_test.py --three-dir path/to/three   # 인터넷 없이 로컬 three@0.160.0 사용
+python tests/obstacles_test.py --three-dir path/to/three   # 23개 항목: 새 장애물 생성·판정=화면 일치·움직이는 발판·펜스·시작 카메라·AI/플레이어 완주
 ```
 랭킹 서버 호출은 테스트에서 가짜 서버로 가로채므로 실제 랭킹에 기록되지 않습니다.
