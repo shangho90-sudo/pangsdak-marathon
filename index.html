@@ -651,7 +651,7 @@ function support(e, x, z, a, r, maxTop){
   return best;
 }
 function blockedAt(x, z, a, r, y){
-  if (r < RC + RAD) return true;
+  if (r < RC + RAD - .01) return true;
   for (let k = -1; k <= 1; k++){ const s = segAt(a + k * TAU); if (s && s.rail && r > s.r1 - RAD && r < s.r1 + .6){ const t = roadTop(a + k * TAU, s.r1 - .05); if (t && y < t.top + .42 && y > t.top - 1.2) return true; } }
   for (let k = -1; k <= 1; k++){ const t = roadTop(a + k * TAU, r); if (t && t.top > y + STEP_UP && t.bot < y + HGT - .05) return true; }
   for (const p of world.pads){ const dx = x - p.x, dz = z - p.z; if (dx * dx + dz * dz < (p.rad + RAD) * (p.rad + RAD) && p.y > y + STEP_UP && p.y - .6 < y + HGT) return true; }
@@ -660,6 +660,9 @@ function blockedAt(x, z, a, r, y){
 function stepEnt(e, dt, wish, wantJump){
   // ride moving pads
   if (e.grounded && e.groundPad){ e.pos.x += e.groundPad.dx; e.pos.z += e.groundPad.dz; }
+  e.a += wrap(Math.atan2(e.pos.z, e.pos.x) - e.a); e.r = Math.hypot(e.pos.x, e.pos.z);
+  if (e.r < RC + RAD){ const k = (RC + RAD + .002) / Math.max(e.r, .001); e.pos.x *= k; e.pos.z *= k; e.r = RC + RAD + .002; }
+  const embedded = blockedAt(e.pos.x, e.pos.z, e.a, e.r, e.pos.y);
   const n = new THREE.Vector3(Math.cos(e.a), 0, Math.sin(e.a)), t = new THREE.Vector3(-Math.sin(e.a), 0, Math.cos(e.a));
   let sp = MOVE * EV.fast * (e.slow > 0 ? .45 : 1);
   const accel = (e.grounded ? 20 : 6) * (EV.slip < 1 && e.grounded ? .12 : 1);
@@ -677,7 +680,7 @@ function stepEnt(e, dt, wish, wantJump){
   // horizontal move with step/wall blocking (try full, then radial-only, then tangential-only)
   const dx = e.vel.x * dt, dz = e.vel.z * dt;
   const tryMove = (mx, mz) => { const nx = e.pos.x + mx, nz = e.pos.z + mz; const na = e.a + wrap(Math.atan2(nz, nx) - e.a), nr = Math.hypot(nx, nz);
-    if (blockedAt(nx, nz, na, nr, e.pos.y)) return false; e.pos.x = nx; e.pos.z = nz; e.a = na; e.r = nr; return true; };
+    if (!embedded && blockedAt(nx, nz, na, nr, e.pos.y)) return false; if (nr < RC + RAD && nr < e.r) return false; e.pos.x = nx; e.pos.z = nz; e.a = na; e.r = nr; return true; };
   if (!tryMove(dx, dz)){ const dn = dx * n.x + dz * n.z, dtg = dx * t.x + dz * t.z;
     if (!tryMove(n.x * dn, n.z * dn)) { e.vel.x -= n.x * (e.vel.x * n.x + e.vel.z * n.z); e.vel.z -= n.z * (e.vel.x * n.x + e.vel.z * n.z); }
     if (!tryMove(t.x * dtg, t.z * dtg)) { const vt = e.vel.x * t.x + e.vel.z * t.z; e.vel.x -= t.x * vt; e.vel.z -= t.z * vt; } }
@@ -696,6 +699,12 @@ function stepEnt(e, dt, wish, wantJump){
   else { e.grounded = false; e.groundPad = null; }
   if (e.grounded && !sup.plaza) e.maxA = Math.max(e.maxA, e.a);
   e.stun -= dt; e.pushCd -= dt; e.pushT -= dt; e.slow -= dt; e.boost -= dt;
+  // anti-stuck: trying to move but not going anywhere -> pop back to the middle of the road
+  const tried = Math.hypot(wish.x, wish.z) > .5 && e.stun <= 0 && !e.finished;
+  const moved = Math.hypot(e.pos.x - (e._px ?? e.pos.x), e.pos.z - (e._pz ?? e.pos.z));
+  e._px = e.pos.x; e._pz = e.pos.z;
+  if (tried && moved < .004) e.stuckT = (e.stuckT || 0) + dt; else e.stuckT = 0;
+  if (e.stuckT > 2.2){ e.stuckT = 0; const na = e.a + .3 / RMID; const tp = roadTop(na, RMID); if (tp){ setPolar(e, na, RMID, tp.top + .05); e.vel.set(0, 0, 0); e.grounded = true; if (e === player) toast('끼임 탈출! 🙌', 1); } }
 }
 function knock(e, vx, vy, vz, emo = '😵'){
   if (e.finished) return;
@@ -1003,10 +1012,10 @@ function frame(now){
     if ((clock * 10 | 0) % 3 === 0){ const r = player.finished ? player.finishRank : rankOf(player); $('rank').innerHTML = `🏆 ${r}위<span class="sn"> · 남은 ${ents.filter(e => !e.finished).length}명</span>`; }
     const back = camera.aspect < 1 ? 7.4 : 6.2;
     const pr = Math.max(player.r, R0);
-    const tgtA = player.a - back / (pr + 1.2);
+    const tgtA = player.a - back / Math.max(pr + 1.2, R0 + 2.8);
     camA += wrap(tgtA - camA) * Math.min(1, dt * 4);
     camY = lerp(camY, player.pos.y + 3.2, Math.min(1, dt * 4));
-    const camR = clamp(pr + 1.1, R0 + 1.8, R1 - .4);
+    const camR = clamp(pr + 1.1, R0 + 2.8, R1 - .4);
     const cp = P(camA, camR, camY); if (shake > 0){ shake -= dt; cp.x += (Math.random() - .5) * shake; cp.y += (Math.random() - .5) * shake; }
     camera.position.copy(cp);
     const la = player.a + 2.2 / pr; camera.lookAt(Math.cos(la) * (pr - .2), player.pos.y + .9, Math.sin(la) * (pr - .2));
